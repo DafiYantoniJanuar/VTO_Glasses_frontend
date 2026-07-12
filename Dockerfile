@@ -15,5 +15,5 @@ COPY . .
 # Expose port 5173
 EXPOSE 5173
 
-# Start Vite development server
-CMD ["npm", "run", "dev", "--", "--host"]
+# Auto-install packages and start Vite development server
+CMD ["sh", "-c", "npm install && npm run dev -- --host"]

@@ -1,0 +1,59 @@
+/* DashboardHome.css */
+
+.vto-dashboard-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5DBD0;
+  border-radius: 16px;
+  padding: 50px 40px;
+  text-align: center;
+  box-shadow: 0 15px 40px rgba(28, 24, 22, 0.02);
+  max-width: 420px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.vto-dashboard-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1C1816;
+}
+
+.vto-dashboard-subtitle {
+  font-size: 0.85rem;
+  color: #7A6F68;
+  margin: 0 0 35px 0;
+  letter-spacing: 0.02em;
+}
+
+.vto-dashboard-quote {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+  font-size: 1.35rem;
+  line-height: 1.5;
+  margin: 0 0 35px 0;
+  color: #C5A880;
+  font-style: italic;
+}
+
+.vto-btn-dashboard-logout {
+  width: 100%;
+  padding: 14px;
+  background-color: #1C1816;
+  color: #FFFFFF;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.vto-btn-dashboard-logout:hover {
+  background-color: #38312E;
+}

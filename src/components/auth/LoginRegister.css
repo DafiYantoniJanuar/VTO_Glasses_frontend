@@ -1,0 +1,488 @@
+/* LoginRegister.css */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
+
+/* Center the card on the screen */
+.vto-page-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #F5EFE6; /* Warm cream background */
+  font-family: 'Outfit', sans-serif;
+  color: #1C1816;
+  z-index: 99999;
+  box-sizing: border-box;
+}
+
+/* Centered Main Layout Card */
+.vto-login-card {
+  width: 920px;
+  height: 600px;
+  max-width: 92%;
+  max-height: 90%;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E5DBD0;
+  box-shadow: 0 20px 50px rgba(28, 24, 22, 0.05);
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left Side - Pure White Showcase Panel */
+.vto-login-left {
+  flex: 1.25;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 50px;
+  box-sizing: border-box;
+  position: relative;
+  /* Sweeping organic curved wave on the right edge */
+  border-radius: 0 40px 180px 0 / 0 35% 65% 0;
+  /* Add shadow casting onto the right panel */
+  box-shadow: 10px 0 30px rgba(28, 24, 22, 0.02);
+  z-index: 10;
+}
+
+/* Right Side - Light Warm Form Panel */
+.vto-login-right {
+  flex: 1;
+  background-color: #FAF8F5; /* Soft off-white */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 50px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Left Side Content Header */
+.vto-left-header {
+  z-index: 12;
+}
+
+.vto-brand-logo {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #1C1816;
+}
+
+/* Left Side Showcase Stage */
+.vto-showcase-stage {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 11;
+}
+
+.vto-3d-placeholder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.vto-stage-circle {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FAF8F5 0%, rgba(245, 239, 235, 0.3) 100%);
+  border: 1px solid rgba(229, 219, 208, 0.4);
+  animation: floatCircle 8s ease-in-out infinite;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.vto-showcase-img {
+  width: 80%;
+  max-width: 240px;
+  height: auto;
+  object-fit: contain;
+  z-index: 2;
+  filter: drop-shadow(0 20px 25px rgba(28, 24, 22, 0.08));
+  animation: floatGlasses 5s ease-in-out infinite;
+}
+
+.vto-stage-shadow {
+  width: 150px;
+  height: 6px;
+  background: rgba(28, 24, 22, 0.03);
+  border-radius: 50%;
+  position: absolute;
+  bottom: -35px;
+  filter: blur(5px);
+  animation: scaleShadow 5s ease-in-out infinite;
+  z-index: 1;
+}
+
+.vto-3d-badge {
+  margin-top: 40px;
+  padding: 4px 12px;
+  background-color: transparent;
+  border: 1px solid #D2C7BC;
+  font-size: 0.7rem;
+  color: #7A6F68;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  z-index: 3;
+}
+
+.vto-3d-caption {
+  font-size: 0.8rem;
+  font-weight: 300;
+  font-style: italic;
+  color: #7A6F68;
+  margin: 10px 0 0 0;
+  letter-spacing: 0.05em;
+  z-index: 3;
+}
+
+/* Left Side Content Footer */
+.vto-left-footer {
+  z-index: 12;
+  text-align: left;
+}
+
+.vto-brand-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  margin: 0 0 6px 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #1C1816;
+}
+
+.vto-brand-tagline {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #7A6F68;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Switcher Tab Header */
+.vto-form-selector {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 25px;
+}
+
+.vto-selector-btn {
+  background: none;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #9C9086;
+  cursor: pointer;
+  padding: 0 0 6px 0;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.vto-selector-btn:hover {
+  color: #1C1816;
+}
+
+.vto-selector-btn.active {
+  color: #1C1816;
+  font-weight: 600;
+}
+
+.vto-selector-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background-color: #C5A880;
+}
+
+.vto-selector-divider {
+  color: #D2C7BC;
+  user-select: none;
+}
+
+/* Form Body */
+.vto-form-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100% - 50px);
+  justify-content: space-between;
+}
+
+.vto-form-header {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.vto-form-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+  margin: 0 0 4px 0;
+  color: #1C1816;
+}
+
+.vto-form-desc {
+  font-size: 0.85rem;
+  color: #7A6F68;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Fields Scrollable Container */
+.vto-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  max-height: 180px; /* Force scrollable fields on Register */
+  padding-right: 8px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+/* Scrollbar Customization */
+.vto-form-fields::-webkit-scrollbar {
+  width: 4px;
+}
+
+.vto-form-fields::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vto-form-fields::-webkit-scrollbar-thumb {
+  background: #E5DBD0;
+  border-radius: 2px;
+}
+
+.vto-form-fields::-webkit-scrollbar-thumb:hover {
+  background: #C5A880;
+}
+
+/* Inputs styled with bottom line only */
+.vto-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+
+.vto-input-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #7A6F68;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.vto-input-field {
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  border-bottom: 1.5px solid #D2C7BC;
+  background-color: transparent;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  color: #1C1816;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.vto-input-field:focus {
+  border-bottom-color: #C5A880;
+}
+
+.vto-input-field::placeholder {
+  color: #C0B5AB;
+}
+
+/* Action Buttons Stack */
+.vto-action-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.vto-btn-primary {
+  width: 100%;
+  padding: 12px;
+  background-color: #1C1816;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.vto-btn-primary:hover {
+  background-color: #38312E;
+  letter-spacing: 0.18em;
+}
+
+.vto-btn-google {
+  width: 100%;
+  padding: 12px;
+  background-color: #FFFFFF;
+  color: #1C1816;
+  border: 1px solid #D2C7BC;
+  border-radius: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.vto-btn-google:hover {
+  background-color: #FAF8F5;
+  border-color: #1C1816;
+}
+
+.vto-google-icon {
+  flex-shrink: 0;
+}
+
+.vto-btn-guest {
+  width: 100%;
+  padding: 12px;
+  background-color: transparent;
+  color: #1C1816;
+  border: 1px solid #1C1816;
+  border-radius: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.vto-btn-guest:hover {
+  background-color: #FAF8F5;
+  border-color: #C5A880;
+  color: #C5A880;
+}
+
+/* Animations */
+@keyframes floatCircle {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+  50% { transform: translate(-50%, -50%) translateY(-8px); }
+}
+
+@keyframes floatGlasses {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-10px) rotate(1.5deg); }
+}
+
+@keyframes scaleShadow {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(0.85); opacity: 0.4; }
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .vto-login-card {
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border: none;
+  }
+
+  .vto-login-left {
+    flex: none;
+    height: 40%;
+    padding: 30px;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid #E5DBD0;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 5px 15px rgba(28, 24, 22, 0.02);
+  }
+
+  .vto-left-header, .vto-left-footer {
+    text-align: center;
+    width: 100%;
+  }
+
+  .vto-brand-title {
+    font-size: 1.8rem;
+  }
+
+  .vto-showcase-stage {
+    min-height: 120px;
+    margin: 10px 0;
+  }
+
+  .vto-stage-circle {
+    width: 160px;
+    height: 160px;
+  }
+
+  .vto-showcase-img {
+    width: 140px;
+  }
+
+  .vto-stage-shadow {
+    width: 100px;
+    bottom: -15px;
+  }
+
+  .vto-login-right {
+    flex: 1;
+    padding: 30px;
+    background-color: #FAF8F5;
+  }
+
+  .vto-form-fields {
+    max-height: none;
+    overflow: visible;
+  }
+}
