@@ -10,6 +10,7 @@
   background-color: #FAF8F5;
   font-family: 'Outfit', sans-serif;
   color: #1C1816;
+  text-align: left;
   position: fixed;
   top: 0;
   left: 0;
@@ -60,8 +61,29 @@
   transition: opacity 0.2s ease;
 }
 
-.vto-nav-link:hover {
-  opacity: 0.7;
+.vto-nav-link:hover,
+.vto-nav-link.active {
+  opacity: 1;
+  border-bottom: 1.5px solid #1C1816;
+  padding-bottom: 2px;
+}
+
+/* Navbar Icon Button (search, cart) */
+.vto-nav-icon-btn {
+  background: none;
+  border: none;
+  color: #1C1816;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.vto-nav-icon-btn:hover {
+  background-color: #F5EFE6;
 }
 
 /* Navbar Right Actions */
@@ -221,9 +243,8 @@
   flex: 1;
   background-color: #FAF8F5;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 40px;
+  flex-direction: column;
+  padding: 0;
   box-sizing: border-box;
   overflow-y: auto;
 }

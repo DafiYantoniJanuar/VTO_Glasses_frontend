@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
@@ -32,6 +33,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
     verifyToken()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const login = async (email, password) => {
