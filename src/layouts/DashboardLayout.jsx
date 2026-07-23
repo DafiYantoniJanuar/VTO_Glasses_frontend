@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './DashboardLayout.css'
@@ -32,52 +33,122 @@ const SearchIcon = () => (
   </svg>
 )
 
+const LogOutIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+    <polyline points="16 17 21 12 16 7"></polyline>
+    <line x1="21" y1="12" x2="9" y2="12"></line>
+  </svg>
+)
+
 function DashboardLayout() {
-  const { user, loading, logout } = useAuth()
+  const { user, loading, initializing, logout } = useAuth()
   const navigate = useNavigate()
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowProfileMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  if (initializing) {
+    return (
+      <div style={{
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: '#FAF8F5',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          border: '2px solid #D2C7BC',
+          borderTop: '2px solid #C5A880',
+          borderRadius: '50%',
+          animation: 'vto-spin 1s linear infinite'
+        }}></div>
+      </div>
+    )
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />
-  }
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
   }
 
   return (
     <div className="vto-dashboard-wrapper">
       {/* Top Navbar */}
       <header className="vto-navbar">
-        <Link to="/" className="vto-nav-logo">VTO Glasses</Link>
+        <Link to="/dashboard" className="vto-nav-logo">VTO Glasses</Link>
 
         <nav className="vto-nav-links">
-          <NavLink to="/" end className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
+          <NavLink to="/dashboard" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
             home
           </NavLink>
           <NavLink to="/catalog" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
             catalog
           </NavLink>
+          {(user?.role === 'admin' || user?.email === 'admin@vtogla.com') && (
+            <NavLink to="/admin/dashboard" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
+              admin catalog
+            </NavLink>
+          )}
           <NavLink to="/checkout" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
             sale
           </NavLink>
         </nav>
 
         <div className="vto-nav-actions">
-          <button className="vto-nav-icon-btn" onClick={() => navigate('/catalog')}>
+          <button className="vto-nav-icon-btn" onClick={() => navigate('/catalog')} title="Search Catalog">
             <SearchIcon />
           </button>
 
-          <button className="vto-nav-icon-btn" onClick={() => navigate('/checkout')}>
+          <button className="vto-nav-icon-btn" onClick={() => navigate('/checkout')} title="Cart / Checkout">
             <CartIcon />
           </button>
 
-          <div
-            className="vto-profile-avatar-placeholder"
-            title={user.isGuest ? 'Guest' : user.name}
-            onClick={handleLogout}
-          >
-            {user.isGuest ? 'G' : (user.name ? user.name.charAt(0).toUpperCase() : 'U')}
+          {/* Profile Avatar with Dropdown */}
+          <div className="vto-profile-menu-container" ref={menuRef}>
+            <div 
+              className="vto-profile-avatar-placeholder" 
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              title="Account Options"
+            >
+              {user.isGuest ? 'G' : (user.name ? user.name.charAt(0).toUpperCase() : 'U')}
+            </div>
+
+            {showProfileMenu && (
+              <div className="vto-profile-dropdown">
+                <div className="vto-dropdown-user-info">
+                  <span className="vto-dropdown-name">{user.isGuest ? 'Guest User' : user.name}</span>
+                  <span className="vto-dropdown-email">{user.isGuest ? 'guest@vtoglasses.local' : user.email}</span>
+                  <span className="vto-dropdown-badge" style={{
+                    backgroundColor: (user.role === 'admin' || user.email === 'admin@vtogla.com') ? '#C5A880' : '#E8DFD8',
+                    color: (user.role === 'admin' || user.email === 'admin@vtogla.com') ? '#1C1816' : '#5C5550'
+                  }}>
+                    {(user.role === 'admin' || user.email === 'admin@vtogla.com') ? 'Admin Administrator' : (user.isGuest ? 'Guest Mode' : 'Authenticated')}
+                  </span>
+                </div>
+
+                <button 
+                  type="button" 
+                  className="vto-dropdown-logout-btn" 
+                  onClick={logout}
+                >
+                  <LogOutIcon />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -90,7 +161,7 @@ function DashboardLayout() {
             <NavLink
               to="/favorites"
               className={({ isActive }) => `vto-sidebar-item ${isActive ? 'active' : ''}`}
-              title="Wishlist"
+              title="Wishlist / Favorites"
             >
               <HeartIcon />
             </NavLink>

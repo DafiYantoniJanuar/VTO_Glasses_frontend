@@ -1,0 +1,136 @@
+/* AdminLayout.css - Dark Gold Luxury Admin Portal Layout */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
+
+.admin-layout {
+  min-height: 100vh;
+  background-color: #0F0D0C;
+  color: #FAF8F5;
+  font-family: 'Outfit', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Admin Navbar */
+.admin-navbar {
+  height: 70px;
+  background-color: rgba(24, 20, 18, 0.95);
+  border-bottom: 1px solid rgba(197, 168, 128, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-logo-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: #FFFFFF;
+}
+
+.admin-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, rgba(197, 168, 128, 0.3) 0%, rgba(197, 168, 128, 0.1) 100%);
+  border: 1px solid #C5A880;
+  color: #C5A880;
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+
+.admin-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.admin-nav-item {
+  color: #D2C7BC;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.admin-nav-item:hover,
+.admin-nav-item.active {
+  color: #FFFFFF;
+  background-color: rgba(197, 168, 128, 0.15);
+}
+
+.admin-user-menu {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #C5A880 0%, #8A7253 100%);
+  color: #1C1816;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-username {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.btn-admin-logout {
+  background: none;
+  border: 1px solid rgba(224, 92, 92, 0.4);
+  color: #E05C5C;
+  padding: 7px 15px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-admin-logout:hover {
+  background-color: #E05C5C;
+  color: #FFFFFF;
+}
+
+/* Content Container */
+.admin-content {
+  flex: 1;
+  padding: 40px;
+  max-width: 1300px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}

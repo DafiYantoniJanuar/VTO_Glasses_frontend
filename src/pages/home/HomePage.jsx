@@ -1,7 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import heroImg from '../../assets/hero.png'
+import Glasses3DViewer from '../../components/3d/Glasses3DViewer'
+import showcaseImg from '../../assets/glasses_showcase.png'
 import './HomePage.css'
+
+const FEATURED_FRAMES = [
+  { id: 1, name: 'The Cambridge', shape: 'Round Classic', price: 'Rp 2.175.000', image: showcaseImg },
+  { id: 2, name: 'The Architect', shape: 'Square Modern', price: 'Rp 2.460.000', image: showcaseImg },
+  { id: 3, name: 'The Maverick', shape: 'Aviator Premium', price: 'Rp 2.760.000', image: showcaseImg },
+]
 
 function HomePage() {
   const navigate = useNavigate()
@@ -9,59 +16,74 @@ function HomePage() {
 
   return (
     <div className="home-wrapper">
-      {/* Left: Text Content */}
-      <div className="home-left">
-        <div className="home-content">
-          <span className="home-label">Next-Gen Eyewear</span>
-          <h1 className="home-title">
-            Precision Optics,<br />Virtually Perfect
-          </h1>
-          <p className="home-desc">
-            Experience flawless fit before you buy. Our advanced AR engine maps
-            120 facial points to match you with frames crafted for your exact
-            bone structure.
-          </p>
-          <div className="home-cta-group">
-            <button className="home-btn-primary" onClick={() => navigate('/catalog')}>
-              Start Your Try-On &rarr;
-            </button>
-            <button className="home-btn-secondary" onClick={() => navigate('/catalog')}>
-              Browse Catalog
-            </button>
-          </div>
+      {/* Top Welcome & Stats Header */}
+      <div className="home-header-row">
+        <div>
+          <h1 className="home-greeting">Selamat Datang, {user?.name || 'Guest'}</h1>
+          <p className="home-subtext">Temukan bingkai kacamata terbaik yang disesuaikan secara presisi dengan bentuk wajah Anda.</p>
         </div>
-
-        {/* Stats Row */}
-        <div className="home-stats">
-          <div className="home-stat">
-            <span className="home-stat-num">120+</span>
-            <span className="home-stat-label">Frame Styles</span>
+        
+        <div className="home-mini-stats">
+          <div className="home-stat-badge">
+            <span className="stat-num">120+</span>
+            <span className="stat-lbl">Model Frame</span>
           </div>
-          <div className="home-stat-divider" />
-          <div className="home-stat">
-            <span className="home-stat-num">468</span>
-            <span className="home-stat-label">Facial Points</span>
-          </div>
-          <div className="home-stat-divider" />
-          <div className="home-stat">
-            <span className="home-stat-num">98%</span>
-            <span className="home-stat-label">Fit Accuracy</span>
+          <div className="home-stat-badge">
+            <span className="stat-num">98%</span>
+            <span className="stat-lbl">Fit Akurasi</span>
           </div>
         </div>
       </div>
 
-      {/* Right: Hero Image */}
-      <div className="home-right">
-        <img src={heroImg} alt="AR Virtual Try-On Demo" className="home-hero-img" />
-        <div className="home-ar-badge">
-          <span className="home-ar-dot" />
-          Live AR Preview
-        </div>
-        {user && (
-          <div className="home-welcome-chip">
-            Welcome, {user.isGuest ? 'Guest' : user.name} 👋
+      {/* Main Luxury Hero Banner with 3D Interactive Model Stage */}
+      <div className="home-hero-card">
+        <div className="hero-card-left">
+          <span className="hero-badge">Studio Fitting AR & 3D</span>
+          <h2 className="hero-card-title">Precision Optics, Virtually Perfect</h2>
+          <p className="hero-card-desc">
+            Nikmati simulasi kacamata 3D interaktif real-time. Putar bingkai kacamata 360°, pilih varian warna bahan, dan uji kecocokan secara presisi sebelum Anda membeli.
+          </p>
+          <div className="hero-action-group">
+            <button className="hero-btn-action" onClick={() => navigate('/catalog')}>
+              Buka Catalog & Fitting &rarr;
+            </button>
           </div>
-        )}
+        </div>
+
+        <div className="hero-card-right">
+          {/* Interactive 3D Three.js Glasses Showcase */}
+          <Glasses3DViewer initialColor="gold" />
+        </div>
+      </div>
+
+      {/* Featured Collection Grid */}
+      <div className="home-collection-section">
+        <div className="section-header">
+          <h3 className="section-title">Koleksi Terpopuler</h3>
+          <button className="btn-link-all" onClick={() => navigate('/catalog')}>
+            Lihat Semua Katalog &rarr;
+          </button>
+        </div>
+
+        <div className="home-featured-grid">
+          {FEATURED_FRAMES.map(f => (
+            <div key={f.id} className="featured-frame-card" onClick={() => navigate(`/catalog/${f.id}`)}>
+              <div className="frame-card-img-wrap">
+                <img src={f.image} alt={f.name} className="frame-card-img" />
+              </div>
+              <div className="frame-card-info">
+                <div>
+                  <h4 className="frame-card-name">{f.name}</h4>
+                  <span className="frame-card-shape">{f.shape}</span>
+                </div>
+                <span className="frame-card-price">{f.price}</span>
+              </div>
+              <button className="frame-card-btn" onClick={(e) => { e.stopPropagation(); navigate(`/catalog/${f.id}`); }}>
+                Lihat Detail
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

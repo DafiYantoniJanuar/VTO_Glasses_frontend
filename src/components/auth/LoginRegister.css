@@ -1,7 +1,6 @@
-/* LoginRegister.css */
+/* LoginRegister.css - Compact & Unscrolled Warm Minimalist Luxury Theme */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
 
-/* Center the card on the screen */
 .vto-page-wrapper {
   position: fixed;
   top: 0;
@@ -11,420 +10,445 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #F5EFE6; /* Warm cream background */
+  background-color: #FAF8F5; /* Warm off-white backdrop */
   font-family: 'Outfit', sans-serif;
   color: #1C1816;
   z-index: 99999;
   box-sizing: border-box;
+  padding: 16px;
 }
 
-/* Centered Main Layout Card */
 .vto-login-card {
-  width: 920px;
-  height: 600px;
-  max-width: 92%;
-  max-height: 90%;
+  width: 880px;
+  min-height: 520px;
+  height: auto;
+  max-width: 94%;
+  max-height: 94vh;
   background-color: #FFFFFF;
-  border-radius: 16px;
-  border: 1px solid #E5DBD0;
-  box-shadow: 0 20px 50px rgba(28, 24, 22, 0.05);
+  border-radius: 12px;
+  border: 1.5px solid #E5DBD0;
+  box-shadow: 0 12px 40px rgba(28, 24, 22, 0.04);
   display: flex;
   overflow: hidden;
 }
 
-/* Left Side - Pure White Showcase Panel */
+/* Left Showcase Panel */
 .vto-login-left {
-  flex: 1.25;
-  background-color: #FFFFFF;
+  flex: 1.15;
+  background-color: #FAF8F5;
+  border-right: 1.5px solid #E5DBD0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 50px;
+  padding: 32px 36px;
   box-sizing: border-box;
   position: relative;
-  /* Sweeping organic curved wave on the right edge */
-  border-radius: 0 40px 180px 0 / 0 35% 65% 0;
-  /* Add shadow casting onto the right panel */
-  box-shadow: 10px 0 30px rgba(28, 24, 22, 0.02);
+  text-align: left;
+}
+
+.vto-left-header {
   z-index: 10;
 }
 
-/* Right Side - Light Warm Form Panel */
-.vto-login-right {
-  flex: 1;
-  background-color: #FAF8F5; /* Soft off-white */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 50px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-/* Left Side Content Header */
-.vto-left-header {
-  z-index: 12;
-}
-
 .vto-brand-logo {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.25em;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: #1C1816;
 }
 
-/* Left Side Showcase Stage */
 .vto-showcase-stage {
   flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  position: relative;
-  z-index: 11;
-}
-
-.vto-3d-placeholder {
-  display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
   width: 100%;
-}
-
-.vto-stage-circle {
-  position: absolute;
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #FAF8F5 0%, rgba(245, 239, 235, 0.3) 100%);
-  border: 1px solid rgba(229, 219, 208, 0.4);
-  animation: floatCircle 8s ease-in-out infinite;
-  z-index: 1;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  padding: 12px 0;
 }
 
 .vto-showcase-img {
-  width: 80%;
-  max-width: 240px;
+  max-width: 190px;
   height: auto;
   object-fit: contain;
-  z-index: 2;
-  filter: drop-shadow(0 20px 25px rgba(28, 24, 22, 0.08));
-  animation: floatGlasses 5s ease-in-out infinite;
+  filter: drop-shadow(0 15px 25px rgba(28, 24, 22, 0.08));
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.vto-stage-shadow {
-  width: 150px;
-  height: 6px;
-  background: rgba(28, 24, 22, 0.03);
-  border-radius: 50%;
-  position: absolute;
-  bottom: -35px;
-  filter: blur(5px);
-  animation: scaleShadow 5s ease-in-out infinite;
-  z-index: 1;
+.vto-showcase-img:hover {
+  transform: scale(1.05) translateY(-4px);
 }
 
 .vto-3d-badge {
-  margin-top: 40px;
+  margin-top: 18px;
   padding: 4px 12px;
-  background-color: transparent;
-  border: 1px solid #D2C7BC;
-  font-size: 0.7rem;
+  border: 1px solid #E5DBD0;
+  border-radius: 20px;
+  font-size: 0.62rem;
   color: #7A6F68;
-  font-weight: 500;
-  letter-spacing: 0.15em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  z-index: 3;
+  background-color: #FFFFFF;
 }
 
-.vto-3d-caption {
-  font-size: 0.8rem;
-  font-weight: 300;
-  font-style: italic;
-  color: #7A6F68;
-  margin: 10px 0 0 0;
-  letter-spacing: 0.05em;
-  z-index: 3;
-}
-
-/* Left Side Content Footer */
 .vto-left-footer {
-  z-index: 12;
-  text-align: left;
+  z-index: 10;
 }
 
 .vto-brand-title {
   font-family: 'Playfair Display', serif;
-  font-size: 2.2rem;
-  font-weight: 300;
-  margin: 0 0 6px 0;
+  font-size: 2rem;
+  font-weight: 400;
+  margin: 0 0 4px 0;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: #1C1816;
+  text-align: left;
 }
 
 .vto-brand-tagline {
-  font-size: 0.75rem;
-  font-weight: 400;
+  font-size: 0.7rem;
+  font-weight: 500;
   color: #7A6F68;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   margin: 0;
+  text-align: left;
 }
 
-/* Switcher Tab Header */
+/* Right Form Container - Compact & Unscrolled */
+.vto-login-right {
+  flex: 1;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px 36px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+/* Tab Switcher */
 .vto-form-selector {
   display: flex;
   align-items: center;
-  gap: 15px;
-  font-size: 0.8rem;
+  justify-content: flex-start;
+  gap: 12px;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  margin-bottom: 25px;
 }
 
 .vto-selector-btn {
   background: none;
   border: none;
   font-family: 'Outfit', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.78rem;
   color: #9C9086;
   cursor: pointer;
-  padding: 0 0 6px 0;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.vto-selector-btn:hover {
-  color: #1C1816;
+  padding-bottom: 4px;
+  transition: all 0.2s ease;
+  outline: none;
 }
 
 .vto-selector-btn.active {
   color: #1C1816;
-  font-weight: 600;
-}
-
-.vto-selector-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 1.5px;
-  background-color: #C5A880;
+  border-bottom: 2px solid #C5A880;
 }
 
 .vto-selector-divider {
-  color: #D2C7BC;
-  user-select: none;
+  color: #E5DBD0;
 }
 
 /* Form Body */
 .vto-form-body {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: calc(100% - 50px);
+  flex: 1;
   justify-content: space-between;
+  margin-top: 14px;
 }
 
 .vto-form-header {
-  text-align: left;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .vto-form-title {
   font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
-  font-weight: 300;
-  margin: 0 0 4px 0;
+  font-size: 1.5rem;
+  font-weight: 400;
   color: #1C1816;
+  margin: 0 0 4px 0;
+  text-align: left;
 }
 
 .vto-form-desc {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #7A6F68;
   line-height: 1.4;
   margin: 0;
+  text-align: left;
 }
 
-/* Fields Scrollable Container */
+/* Input Fields Area - NO SCROLLBAR, FULL VISIBILITY */
 .vto-form-fields {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  overflow-y: auto;
-  max-height: 180px; /* Force scrollable fields on Register */
-  padding-right: 8px;
-  margin-bottom: 20px;
-  box-sizing: border-box;
+  gap: 10px;
+  overflow-y: visible;
+  max-height: none;
+  margin-bottom: 14px;
 }
 
-/* Scrollbar Customization */
-.vto-form-fields::-webkit-scrollbar {
-  width: 4px;
-}
-
-.vto-form-fields::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.vto-form-fields::-webkit-scrollbar-thumb {
-  background: #E5DBD0;
-  border-radius: 2px;
-}
-
-.vto-form-fields::-webkit-scrollbar-thumb:hover {
-  background: #C5A880;
-}
-
-/* Inputs styled with bottom line only */
 .vto-input-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   text-align: left;
 }
 
 .vto-input-label {
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 700;
   color: #7A6F68;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
 }
 
 .vto-input-field {
   width: 100%;
-  padding: 6px 0;
-  border: none;
-  border-bottom: 1.5px solid #D2C7BC;
-  background-color: transparent;
+  padding: 9px 12px;
+  border: 1.5px solid #E5DBD0;
+  border-radius: 6px;
+  background-color: #FAF8F5;
   font-family: 'Outfit', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: #1C1816;
   outline: none;
   box-sizing: border-box;
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .vto-input-field:focus {
-  border-bottom-color: #C5A880;
+  border-color: #C5A880;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15);
 }
 
-.vto-input-field::placeholder {
-  color: #C0B5AB;
+.vto-password-wrapper {
+  position: relative;
+  width: 100%;
 }
 
-/* Action Buttons Stack */
+.vto-pwd-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #7A6F68;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  outline: none;
+}
+
+.vto-pwd-toggle:hover {
+  color: #1C1816;
+}
+
+/* Actions Stack */
 .vto-action-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
 .vto-btn-primary {
   width: 100%;
-  padding: 12px;
+  padding: 11px;
   background-color: #1C1816;
   color: #FFFFFF;
   border: none;
-  border-radius: 0;
+  border-radius: 6px;
   font-family: 'Outfit', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.vto-btn-primary:hover {
+.vto-btn-primary:hover:not(:disabled) {
   background-color: #38312E;
-  letter-spacing: 0.18em;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(28, 24, 22, 0.12);
+}
+
+.vto-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.vto-btn-loading-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vto-spinner-dots {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #C5A880;
+  border-radius: 50%;
+  animation: vto-spin-dot 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes vto-spin-dot {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .vto-btn-google {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   background-color: #FFFFFF;
   color: #1C1816;
-  border: 1px solid #D2C7BC;
-  border-radius: 0;
+  border: 1.5px solid #E5DBD0;
+  border-radius: 6px;
   font-family: 'Outfit', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
+  gap: 8px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.vto-btn-google:hover {
+.vto-btn-google:hover:not(:disabled) {
   background-color: #FAF8F5;
   border-color: #1C1816;
-}
-
-.vto-google-icon {
-  flex-shrink: 0;
+  transform: translateY(-1px);
 }
 
 .vto-btn-guest {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   background-color: transparent;
-  color: #1C1816;
-  border: 1px solid #1C1816;
-  border-radius: 0;
+  color: #7A6F68;
+  border: 1.5px solid #E5DBD0;
+  border-radius: 6px;
   font-family: 'Outfit', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.vto-btn-guest:hover {
-  background-color: #FAF8F5;
+.vto-btn-guest:hover:not(:disabled) {
   border-color: #C5A880;
   color: #C5A880;
 }
 
-/* Animations */
-@keyframes floatCircle {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  50% { transform: translate(-50%, -50%) translateY(-8px); }
+/* Modals */
+.vto-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(28, 24, 22, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
 }
 
-@keyframes floatGlasses {
-  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
-  50% { transform: translateY(-10px) rotate(1.5deg); }
+.vto-google-modal {
+  width: 380px;
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  padding: 24px;
+  box-shadow: 0 15px 45px rgba(28, 24, 22, 0.15);
+  border: 1.5px solid #E5DBD0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
 }
 
-@keyframes scaleShadow {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(0.85); opacity: 0.4; }
+.vto-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* Responsive Styles */
+.vto-modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  color: #1C1816;
+  margin: 0;
+}
+
+.vto-modal-desc {
+  font-size: 0.8rem;
+  color: #7A6F68;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Toast Alerts */
+.vto-toast-alert {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.vto-toast-alert.error {
+  background-color: #FDF2F2;
+  border: 1.5px solid #F8B4B4;
+  color: #9B1C1C;
+}
+
+.vto-toast-alert.success {
+  background-color: #F0FDF4;
+  border: 1.5px solid #BBF7D0;
+  color: #166534;
+}
+
+.vto-toast-close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: inherit;
+  outline: none;
+}
+
 @media (max-width: 768px) {
   .vto-login-card {
     flex-direction: column;
@@ -435,54 +459,12 @@
     border-radius: 0;
     border: none;
   }
-
   .vto-login-left {
-    flex: none;
-    height: 40%;
-    padding: 30px;
-    align-items: center;
-    border-right: none;
-    border-bottom: 1px solid #E5DBD0;
-    border-radius: 0 0 20px 20px;
-    box-shadow: 0 5px 15px rgba(28, 24, 22, 0.02);
+    padding: 24px;
+    height: 35%;
+    border-bottom: 1.5px solid #E5DBD0;
   }
-
-  .vto-left-header, .vto-left-footer {
-    text-align: center;
-    width: 100%;
-  }
-
-  .vto-brand-title {
-    font-size: 1.8rem;
-  }
-
-  .vto-showcase-stage {
-    min-height: 120px;
-    margin: 10px 0;
-  }
-
-  .vto-stage-circle {
-    width: 160px;
-    height: 160px;
-  }
-
-  .vto-showcase-img {
-    width: 140px;
-  }
-
-  .vto-stage-shadow {
-    width: 100px;
-    bottom: -15px;
-  }
-
   .vto-login-right {
-    flex: 1;
-    padding: 30px;
-    background-color: #FAF8F5;
-  }
-
-  .vto-form-fields {
-    max-height: none;
-    overflow: visible;
+    padding: 24px;
   }
 }
