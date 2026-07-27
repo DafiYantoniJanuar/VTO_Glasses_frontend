@@ -1,9 +1,25 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import showcaseImg from '../../assets/glasses_showcase.png'
 import heroImg from '../../assets/hero.png'
 import Glasses3DViewer from '../../components/3d/Glasses3DViewer'
 import './ProductDetailPage.css'
+
+const loadScript = (src) => {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = src
+    script.onload = () => resolve()
+    script.onerror = () => reject()
+    document.head.appendChild(script)
+  })
+}
 
 const DUMMY_PRODUCTS = {
   1: { id: 1, name: 'The Cambridge', shape: 'Round', color: 'Tortoise', price: 2175000, category: 'Sunglasses', rating: 4.7, reviews: 89, image: showcaseImg, modelUrl: '/models/kacamata-1.glb', description: 'A timeless round silhouette crafted from premium Italian acetate. The Cambridge offers UV400 protection and ultra-lightweight comfort — perfect for everyday wear.' },
@@ -43,8 +59,13 @@ function ProductDetailPage() {
 
   // Camera State directly inside Fitting Room panel
   const videoRef = useRef(null)
+  const arCanvasRef = useRef(null)
+  const cameraUtilsRef = useRef(null)
+  const faceMeshRef = useRef(null)
+  
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState(null)
+  const [loadingARScripts, setLoadingARScripts] = useState(false)
 
   const product = DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1]
 
@@ -73,6 +94,14 @@ function ProductDetailPage() {
 
   const toggleCamera = async () => {
     if (cameraActive) {
+      if (cameraUtilsRef.current) {
+        try { cameraUtilsRef.current.stop() } catch {}
+        cameraUtilsRef.current = null
+      }
+      if (faceMeshRef.current) {
+        try { faceMeshRef.current.close() } catch {}
+        faceMeshRef.current = null
+      }
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks()
         tracks.forEach(track => track.stop())
@@ -80,8 +109,13 @@ function ProductDetailPage() {
       }
       setCameraActive(false)
     } else {
+      setCameraError(null)
+      setLoadingARScripts(true)
       try {
-        setCameraError(null)
+        await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js')
+        await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js')
+        setLoadingARScripts(false)
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480, facingMode: 'user' }
         })
@@ -91,22 +125,170 @@ function ProductDetailPage() {
         setCameraActive(true)
       } catch (err) {
         console.error(err)
-        setCameraError('Kamera tidak ditemukan atau izin ditolak.')
+        setCameraError('Kamera tidak ditemukan, izin ditolak, atau library gagal dimuat.')
         setCameraActive(false)
+        setLoadingARScripts(false)
       }
     }
   }
 
-  // Cleanup camera on unmount
+  // Cleanup on unmount
   useEffect(() => {
     const videoNode = videoRef.current
     return () => {
+      if (cameraUtilsRef.current) {
+        try { cameraUtilsRef.current.stop() } catch {}
+      }
+      if (faceMeshRef.current) {
+        try { faceMeshRef.current.close() } catch {}
+      }
       if (videoNode && videoNode.srcObject) {
         const tracks = videoNode.srcObject.getTracks()
         tracks.forEach(track => track.stop())
       }
     }
   }, [])
+
+  // MediaPipe + Three.js Face Mesh Overlay Tracker Effect
+  useEffect(() => {
+    if (!cameraActive || !videoRef.current || !arCanvasRef.current) return
+
+    let active = true
+    const canvas = arCanvasRef.current
+    const width = canvas.clientWidth || 320
+    const heightPx = canvas.clientHeight || 280
+
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(40, width / heightPx, 0.1, 1000)
+    camera.position.set(0, 0, 10)
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+    renderer.setSize(width, heightPx)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0)
+    scene.add(ambientLight)
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.5)
+    mainLight.position.set(0, 4, 4)
+    scene.add(mainLight)
+
+    const glassesGroup = new THREE.Group()
+    scene.add(glassesGroup)
+
+    let glassesModel = null
+    const loader = new GLTFLoader()
+    loader.load(product.modelUrl, (gltf) => {
+      if (!active) return
+      glassesModel = gltf.scene
+
+      // Center the model pivot
+      const box = new THREE.Box3().setFromObject(glassesModel)
+      const center = box.getCenter(new THREE.Vector3())
+      const size = box.getSize(new THREE.Vector3())
+
+      glassesModel.position.set(-center.x, -center.y, -center.z)
+
+      // Normalize scale
+      const maxDim = Math.max(size.x, size.y, size.z)
+      if (maxDim > 0) {
+        const s = 1.0 / maxDim
+        glassesModel.scale.set(s, s, s)
+      }
+
+      glassesGroup.add(glassesModel)
+      glassesGroup.visible = false
+    })
+
+    const faceMesh = new window.FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    })
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    })
+
+    faceMesh.onResults((results) => {
+      if (!active) return
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0]
+        const nose = landmarks[168]
+        const leftEye = landmarks[133]
+        const rightEye = landmarks[362]
+        const forehead = landmarks[10]
+        const chin = landmarks[152]
+
+        if (nose && leftEye && rightEye && glassesGroup) {
+          glassesGroup.visible = true
+
+          // Mirror X axis since video has scaleX(-1) style
+          const ndcX = -(nose.x * 2 - 1)
+          const ndcY = -(nose.y * 2 - 1)
+          const targetZ = -5
+
+          const vFOV = camera.fov * Math.PI / 180
+          const planeHeight = 2 * Math.tan(vFOV / 2) * Math.abs(targetZ)
+          const planeWidth = planeHeight * camera.aspect
+
+          glassesGroup.position.x = ndcX * (planeWidth / 2)
+          glassesGroup.position.y = ndcY * (planeHeight / 2)
+          // Add subtle depth offset
+          glassesGroup.position.z = targetZ + (1.0 - nose.z) * 2
+
+          // Dynamic scale based on eye distance
+          const dx = rightEye.x - leftEye.x
+          const dy = rightEye.y - leftEye.y
+          const eyeDist = Math.sqrt(dx * dx + dy * dy)
+
+          const baseScale = eyeDist * planeWidth * 1.05
+          glassesGroup.scale.set(baseScale, baseScale, baseScale)
+
+          // Y-axis rotation (Yaw)
+          const distToLeft = Math.abs(nose.x - leftEye.x)
+          const distToRight = Math.abs(nose.x - rightEye.x)
+          const yaw = (distToLeft - distToRight) / (distToLeft + distToRight || 1)
+          glassesGroup.rotation.y = yaw * 1.2
+
+          // Z-axis rotation (Roll)
+          const roll = Math.atan2(dy, dx)
+          glassesGroup.rotation.z = -roll
+
+          // X-axis rotation (Pitch)
+          const faceHeight = Math.abs(forehead.y - chin.y)
+          const pitch = (nose.y - (forehead.y + chin.y) / 2) / (faceHeight || 1)
+          glassesGroup.rotation.x = pitch * 1.5
+        }
+      } else {
+        if (glassesGroup) {
+          glassesGroup.visible = false
+        }
+      }
+      renderer.render(scene, camera)
+    })
+
+    const cameraHelper = new window.Camera(videoRef.current, {
+      onFrame: async () => {
+        if (!active) return
+        try {
+          await faceMesh.send({ image: videoRef.current })
+        } catch {}
+      },
+      width: 640,
+      height: 480
+    })
+    cameraHelper.start()
+    cameraUtilsRef.current = cameraHelper
+    faceMeshRef.current = faceMesh
+
+    return () => {
+      active = false
+      try { faceMesh.close() } catch {}
+      renderer.dispose()
+    }
+  }, [cameraActive, product.modelUrl])
 
   const handleAddToCart = () => {
     setToastMessage(`${product.name} ditambahkan ke keranjang!`)
@@ -128,9 +310,15 @@ function ProductDetailPage() {
           fontSize: '0.84rem',
           fontWeight: '500',
           zIndex: 10000,
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          ✨ {toastMessage}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C5A880" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>{toastMessage}</span>
         </div>
       )}
 
@@ -146,17 +334,9 @@ function ProductDetailPage() {
         </nav>
 
         {/* Product Image Card */}
-        <div className="pdp-image-card">
-          <div className="pdp-img-main">
-            <img src={product.image} alt={product.name} className="pdp-img-display" />
-          </div>
-
-          <div className="pdp-thumbnails">
-            {[1, 2, 3].map(i => (
-              <div key={i} className={`pdp-thumb ${i === 1 ? 'active' : ''}`}>
-                <img src={product.image} alt="Thumbnail" style={{ width: '40px', height: 'auto' }} />
-              </div>
-            ))}
+        <div className="pdp-image-card" style={{ padding: '16px' }}>
+          <div className="pdp-img-main" style={{ height: '320px' }}>
+            <Glasses3DViewer modelUrl={product.modelUrl} height="320px" modelScale={4.8} />
           </div>
         </div>
 
@@ -285,23 +465,28 @@ function ProductDetailPage() {
                 />
 
                 {cameraActive && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '40%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    pointerEvents: 'none',
-                    zIndex: 10
-                  }}>
-                    <svg width="180" height="70" viewBox="0 0 240 90" fill="none">
-                      <rect x="15" y="15" width="85" height="60" rx="28" fill="rgba(255, 255, 255, 0.15)" stroke="#1C1816" strokeWidth="4" />
-                      <rect x="140" y="15" width="85" height="60" rx="28" fill="rgba(255, 255, 255, 0.15)" stroke="#1C1816" strokeWidth="4" />
-                      <path d="M100 35 C112 28, 128 28, 140 35" stroke="#1C1816" strokeWidth="4" fill="none" />
-                    </svg>
+                  <canvas
+                    ref={arCanvasRef}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      zIndex: 15,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                )}
+
+                {loadingARScripts && (
+                  <div className="vto-3d-loader">
+                    <div className="vto-3d-spinner"></div>
+                    <span style={{ fontSize: '0.78rem', color: '#7A6F68', marginTop: '8px' }}>Memuat modul AR...</span>
                   </div>
                 )}
 
-                {!cameraActive && (
+                {!cameraActive && !loadingARScripts && (
                   <>
                     <div className="pdp-tryon-icon">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1C1816" strokeWidth="1.8">
@@ -320,8 +505,8 @@ function ProductDetailPage() {
                 {cameraError ? cameraError : <>Uji kesesuaian bingkai <b>{product.name}</b> di wajah Anda secara <i>real-time</i>.</>}
               </p>
 
-              <button className="pdp-tryon-cta" onClick={toggleCamera}>
-                {cameraActive ? 'Matikan Kamera' : 'Aktifkan Kamera'}
+              <button className="pdp-tryon-cta" onClick={toggleCamera} disabled={loadingARScripts}>
+                {cameraActive ? 'Matikan Kamera' : loadingARScripts ? 'Memuat...' : 'Aktifkan Kamera'}
               </button>
             </>
           )}
