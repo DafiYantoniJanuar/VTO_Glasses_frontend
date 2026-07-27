@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import './ProductCard.css'
 
-function ProductCard({ product }) {
+function ProductCard({ product, isAdmin = false, onEdit, onDelete }) {
   const navigate = useNavigate()
   const {
     id,
@@ -10,18 +10,21 @@ function ProductCard({ product }) {
     color,
     price,
     image,
+    best_seller,
     bestSeller = false,
     rating,
   } = product
 
+  const isBestSeller = best_seller || bestSeller
+
   const formatPrice = (p) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p)
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p || 0)
 
   return (
     <div className="pc-card" onClick={() => navigate(`/catalog/${id}`)}>
       {/* Image Area */}
       <div className="pc-image-wrap">
-        {bestSeller && <span className="pc-badge">Best Seller</span>}
+        {isBestSeller && <span className="pc-badge">Best Seller</span>}
         {image ? (
           <img src={image} alt={name} className="pc-img" />
         ) : (
@@ -32,7 +35,6 @@ function ProductCard({ product }) {
             </svg>
           </div>
         )}
-        {/* Hover overlay */}
         <div className="pc-hover-overlay">
           <button className="pc-try-btn" onClick={(e) => { e.stopPropagation(); navigate(`/catalog/${id}`) }}>
             Try On
@@ -44,17 +46,37 @@ function ProductCard({ product }) {
       <div className="pc-info">
         <div className="pc-name-row">
           <span className="pc-name">{name}</span>
-          {rating && <span className="pc-rating">★ {rating}</span>}
+          {rating && <span className="pc-rating">{rating}</span>}
         </div>
         <span className="pc-meta">{shape} • {color}</span>
         <div className="pc-bottom">
           <span className="pc-price">{formatPrice(price)}</span>
-          <button
-            className="pc-cart-btn"
-            onClick={(e) => { e.stopPropagation(); alert(`${name} ditambahkan ke keranjang!`) }}
-          >
-            + Cart
-          </button>
+
+          {isAdmin ? (
+            <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+              <button
+                className="pc-edit-btn"
+                onClick={() => onEdit && onEdit(product)}
+                style={{ padding: '4px 10px', borderRadius: '4px', background: '#C5A880', color: '#1C1816', fontWeight: '600', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}
+              >
+                Edit
+              </button>
+              <button
+                className="pc-del-btn"
+                onClick={() => onDelete && onDelete(id)}
+                style={{ padding: '4px 10px', borderRadius: '4px', background: 'transparent', color: '#EF4444', border: '1px solid #EF4444', cursor: 'pointer', fontSize: '0.75rem' }}
+              >
+                Hapus
+              </button>
+            </div>
+          ) : (
+            <button
+              className="pc-cart-btn"
+              onClick={(e) => { e.stopPropagation(); alert(`${name} ditambahkan ke keranjang!`) }}
+            >
+              + Cart
+            </button>
+          )}
         </div>
       </div>
     </div>

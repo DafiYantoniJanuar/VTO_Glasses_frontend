@@ -9,7 +9,6 @@ import FavoritesPage from './pages/favorites/FavoritesPage'
 import TryOnHistoryPage from './pages/history/TryOnHistoryPage'
 import CheckoutPage from './pages/checkout/CheckoutPage'
 import DashboardHome from './pages/dashboard/DashboardHome'
-import TryOnPage from './pages/tryon/TryOnPage'
 import AdminCatalogPage from './pages/admin/AdminCatalogPage'
 import './App.css'
 
@@ -30,11 +29,9 @@ function App() {
             <Route path="/history" element={<TryOnHistoryPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/account" element={<DashboardHome />} />
-            <Route path="/try-on" element={<TryOnPage />} />
-            <Route path="/try-on/:id" element={<TryOnPage />} />
 
             {/* Admin Dedicated CRUD Routes */}
-            <Route path="/admin/dashboard" element={<AdminCatalogPage />} />
+            <Route path="/admin/dashboard" element={<HomePage />} />
             <Route path="/admin/catalog" element={<AdminCatalogPage />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           </Route>

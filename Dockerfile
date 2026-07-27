@@ -1,10 +1,11 @@
 FROM node:20-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Expose port 5173
+# Copy package files first
+COPY package*.json ./
+
 EXPOSE 5173
 
-# npm install runs at startup (handled by bind mount + CMD)
-CMD ["sh", "-c", "npm install && npm run dev"]
+# Run dev server binding host to 0.0.0.0 for docker access
+CMD ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0 --port 5173"]

@@ -52,7 +52,7 @@ function HomePage() {
 
         <div className="hero-card-right">
           {/* Interactive 3D Three.js Glasses Showcase */}
-          <Glasses3DViewer initialColor="gold" />
+          <Glasses3DViewer modelUrl="/models/glasses_2.glb" height="320px" modelScale={6.8} showControls={true} />
         </div>
       </div>
 

@@ -2,15 +2,16 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import showcaseImg from '../../assets/glasses_showcase.png'
 import heroImg from '../../assets/hero.png'
+import Glasses3DViewer from '../../components/3d/Glasses3DViewer'
 import './ProductDetailPage.css'
 
 const DUMMY_PRODUCTS = {
-  1: { id: 1, name: 'The Cambridge', shape: 'Round', color: 'Tortoise', price: 2175000, category: 'Sunglasses', rating: 4.7, reviews: 89, image: showcaseImg, description: 'A timeless round silhouette crafted from premium Italian acetate. The Cambridge offers UV400 protection and ultra-lightweight comfort — perfect for everyday wear.' },
-  2: { id: 2, name: 'The Architect', shape: 'Square', color: 'Matte Black', price: 2460000, category: 'Sunglasses', rating: 4.6, reviews: 120, image: heroImg, description: 'Timeless design meets modern engineering. The Architect features aerospace-grade titanium frames and polarized lenses for uncompromising style and clarity.' },
-  3: { id: 3, name: 'The Maverick', shape: 'Aviator', color: 'Gold', price: 2760000, category: 'Sunglasses', rating: 4.9, reviews: 210, image: showcaseImg, description: 'Bold, iconic, unmistakable. The Maverick aviator features a classic teardrop silhouette with a lustrous gold frame and premium gradient lenses.' },
-  4: { id: 4, name: 'The Ghost', shape: 'Cat Eye', color: 'Clear Crystal', price: 2235000, category: 'Blue Light', rating: 4.5, reviews: 65, image: heroImg, description: 'Barely-there sophistication. The Ghost features ultra-clear acetate for an almost invisible look that lets your face take center stage, with blue light blocking.' },
-  5: { id: 5, name: 'Classic Scholar', shape: 'Round', color: 'Dark Gray', price: 1890000, category: 'Reading Glasses', rating: 4.4, reviews: 44, image: showcaseImg, description: 'Refined and scholarly, the Classic Scholar combines a vintage-inspired round silhouette with modern lightweight materials for all-day reading comfort.' },
-  6: { id: 6, name: 'Aero Slim', shape: 'Aviator', color: 'Midnight Black', price: 2450000, category: 'Minus', rating: 4.8, reviews: 178, image: heroImg, description: 'The ultimate in minimal elegance. Aero Slim\'s ultra-thin titanium frame practically disappears on your face, available with prescription lenses.' },
+  1: { id: 1, name: 'The Cambridge', shape: 'Round', color: 'Tortoise', price: 2175000, category: 'Sunglasses', rating: 4.7, reviews: 89, image: showcaseImg, modelUrl: '/models/kacamata-1.glb', description: 'A timeless round silhouette crafted from premium Italian acetate. The Cambridge offers UV400 protection and ultra-lightweight comfort — perfect for everyday wear.' },
+  2: { id: 2, name: 'The Architect', shape: 'Square', color: 'Matte Black', price: 2460000, category: 'Sunglasses', rating: 4.6, reviews: 120, image: heroImg, modelUrl: '/models/glasses_2.glb', description: 'Timeless design meets modern engineering. The Architect features aerospace-grade titanium frames and polarized lenses for uncompromising style and clarity.' },
+  3: { id: 3, name: 'The Maverick', shape: 'Aviator', color: 'Gold', price: 2760000, category: 'Sunglasses', rating: 4.9, reviews: 210, image: showcaseImg, modelUrl: '/models/eyeglasses_specs.glb', description: 'Bold, iconic, unmistakable. The Maverick aviator features a classic teardrop silhouette with a lustrous gold frame and premium gradient lenses.' },
+  4: { id: 4, name: 'The Ghost', shape: 'Cat Eye', color: 'Clear Crystal', price: 2235000, category: 'Blue Light', rating: 4.5, reviews: 65, image: heroImg, modelUrl: '/models/glasses_4.glb', description: 'Barely-there sophistication. The Ghost features ultra-clear acetate for an almost invisible look that lets your face take center stage, with blue light blocking.' },
+  5: { id: 5, name: 'Classic Scholar', shape: 'Round', color: 'Dark Gray', price: 1890000, category: 'Reading Glasses', rating: 4.4, reviews: 44, image: showcaseImg, modelUrl: '/models/low_poly_eyeglass.glb', description: 'Refined and scholarly, the Classic Scholar combines a vintage-inspired round silhouette with modern lightweight materials for all-day reading comfort.' },
+  6: { id: 6, name: 'Aero Slim', shape: 'Aviator', color: 'Midnight Black', price: 2450000, category: 'Minus', rating: 4.8, reviews: 178, image: heroImg, modelUrl: '/models/titanium_frame_glass.glb', description: 'The ultimate in minimal elegance. Aero Slim\'s ultra-thin titanium frame practically disappears on your face, available with prescription lenses.' },
 }
 
 const formatPrice = (p) =>
@@ -37,6 +38,7 @@ function ProductDetailPage() {
   const navigate = useNavigate()
   const [isFavorite, setIsFavorite] = useState(false)
   const [activeTab, setActiveTab] = useState('description')
+  const [previewMode, setPreviewMode] = useState('3d') // '3d' or 'camera'
   const [toastMessage, setToastMessage] = useState(null)
 
   // Camera State directly inside Fitting Room panel
@@ -45,6 +47,29 @@ function ProductDetailPage() {
   const [cameraError, setCameraError] = useState(null)
 
   const product = DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1]
+
+  // Sync initial favorite state from local storage
+  useEffect(() => {
+    let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+    setIsFavorite(localFavs.some(p => p.id === product.id))
+  }, [product.id])
+
+  const handleToggleFav = async () => {
+    let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+    const exists = localFavs.some(p => p.id === product.id)
+    let updated
+    if (exists) {
+      updated = localFavs.filter(p => p.id !== product.id)
+      setIsFavorite(false)
+      setToastMessage('Dihapus dari favorit.')
+    } else {
+      updated = [...localFavs, product]
+      setIsFavorite(true)
+      setToastMessage('Ditambahkan ke favorit.')
+    }
+    localStorage.setItem('vto_favorites', JSON.stringify(updated))
+    setTimeout(() => setToastMessage(null), 3000)
+  }
 
   const toggleCamera = async () => {
     if (cameraActive) {
@@ -105,7 +130,7 @@ function ProductDetailPage() {
           zIndex: 10000,
           boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
         }}>
-          🛒 {toastMessage}
+          ✨ {toastMessage}
         </div>
       )}
 
@@ -141,7 +166,7 @@ function ProductDetailPage() {
             <h1 className="pdp-name">{product.name}</h1>
             <button
               className={`pdp-fav-btn ${isFavorite ? 'active' : ''}`}
-              onClick={() => setIsFavorite(!isFavorite)}
+              onClick={handleToggleFav}
               title={isFavorite ? "Hapus dari Wishlist" : "Tambah ke Wishlist"}
             >
               <svg width="20" height="20" viewBox="0 0 24 24"
@@ -195,72 +220,114 @@ function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Right Column: Virtual Fitting Room Preview Stage */}
+      {/* Right Column: Interactive 3D Model & Virtual Try-On Stage */}
       <div className="pdp-right">
         <div className="pdp-tryon-placeholder">
-          <div className="pdp-ar-preview-stage">
-            <span className="pdp-ar-pulse-dot" style={{ backgroundColor: cameraActive ? '#22C55E' : '#C5A880' }} />
-            
-            {/* Live Video Feed */}
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              muted 
+          {/* Studio Mode Selector */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', width: '100%' }}>
+            <button
+              onClick={() => setPreviewMode('3d')}
               style={{
-                display: cameraActive ? 'block' : 'none',
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transform: 'scaleX(-1)'
-              }} 
-            />
-
-            {/* Simulated Frame overlay when camera active */}
-            {cameraActive && (
-              <div style={{
-                position: 'absolute',
-                top: '40%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                pointerEvents: 'none',
-                zIndex: 10
-              }}>
-                <svg width="180" height="70" viewBox="0 0 240 90" fill="none">
-                  <rect x="15" y="15" width="85" height="60" rx="28" fill="rgba(255, 255, 255, 0.15)" stroke="#1C1816" strokeWidth="4" />
-                  <rect x="140" y="15" width="85" height="60" rx="28" fill="rgba(255, 255, 255, 0.15)" stroke="#1C1816" strokeWidth="4" />
-                  <path d="M100 35 C112 28, 128 28, 140 35" stroke="#1C1816" strokeWidth="4" fill="none" />
-                </svg>
-              </div>
-            )}
-
-            {/* Default Placeholder when camera is off */}
-            {!cameraActive && (
-              <>
-                <div className="pdp-tryon-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1C1816" strokeWidth="1.8">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </div>
-                <span style={{ fontSize: '0.78rem', fontWeight: '600', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1C1816' }}>
-                  VIRTUAL FITTING ROOM
-                </span>
-              </>
-            )}
+                flex: 1,
+                padding: '8px',
+                borderRadius: '8px',
+                border: '1px solid rgba(229,219,208,0.2)',
+                background: previewMode === '3d' ? '#C5A880' : 'rgba(28,24,22,0.8)',
+                color: previewMode === '3d' ? '#1C1816' : '#FAF8F5',
+                fontSize: '0.78rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Preview Model 3D
+            </button>
+            <button
+              onClick={() => setPreviewMode('camera')}
+              style={{
+                flex: 1,
+                padding: '8px',
+                borderRadius: '8px',
+                border: '1px solid rgba(229,219,208,0.2)',
+                background: previewMode === 'camera' ? '#C5A880' : 'rgba(28,24,22,0.8)',
+                color: previewMode === 'camera' ? '#1C1816' : '#FAF8F5',
+                fontSize: '0.78rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Live AR Camera
+            </button>
           </div>
 
-          <p className="pdp-tryon-hint">
-            {cameraError ? cameraError : <>Uji kesesuaian bingkai <b>{product.name}</b> di wajah Anda secara <i>real-time</i>.</>}
-          </p>
+          {/* Interactive 3D Preview Mode */}
+          {previewMode === '3d' && (
+            <Glasses3DViewer modelUrl={product.modelUrl} showModelSelector={false} />
+          )}
 
-          {/* Toggle Camera Button */}
-          <button className="pdp-tryon-cta" onClick={toggleCamera}>
-            {cameraActive ? 'Matikan Kamera' : 'Aktifkan Kamera'}
-          </button>
+          {/* Live Camera AR Mode */}
+          {previewMode === 'camera' && (
+            <>
+              <div className="pdp-ar-preview-stage">
+                <span className="pdp-ar-pulse-dot" style={{ backgroundColor: cameraActive ? '#22C55E' : '#C5A880' }} />
+                
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  style={{
+                    display: cameraActive ? 'block' : 'none',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transform: 'scaleX(-1)'
+                  }} 
+                />
+
+                {cameraActive && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '40%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'none',
+                    zIndex: 10
+                  }}>
+                    <svg width="180" height="70" viewBox="0 0 240 90" fill="none">
+                      <rect x="15" y="15" width="85" height="60" rx="28" fill="rgba(255, 255, 255, 0.15)" stroke="#1C1816" strokeWidth="4" />
+                      <rect x="140" y="15" width="85" height="60" rx="28" fill="rgba(255, 255, 255, 0.15)" stroke="#1C1816" strokeWidth="4" />
+                      <path d="M100 35 C112 28, 128 28, 140 35" stroke="#1C1816" strokeWidth="4" fill="none" />
+                    </svg>
+                  </div>
+                )}
+
+                {!cameraActive && (
+                  <>
+                    <div className="pdp-tryon-icon">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1C1816" strokeWidth="1.8">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: '600', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#1C1816' }}>
+                      VIRTUAL FITTING ROOM
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <p className="pdp-tryon-hint">
+                {cameraError ? cameraError : <>Uji kesesuaian bingkai <b>{product.name}</b> di wajah Anda secara <i>real-time</i>.</>}
+              </p>
+
+              <button className="pdp-tryon-cta" onClick={toggleCamera}>
+                {cameraActive ? 'Matikan Kamera' : 'Aktifkan Kamera'}
+              </button>
+            </>
+          )}
 
           {/* Model Switcher Cards */}
-          <div className="pdp-model-switcher">
+          <div className="pdp-model-switcher" style={{ marginTop: '16px' }}>
             <span className="pdp-switch-label">Ganti Model Frame</span>
             <div className="pdp-switch-pills">
               {Object.values(DUMMY_PRODUCTS).map(p => (
@@ -275,26 +342,6 @@ function ProductDetailPage() {
                   <span className="pdp-switch-shape">{p.shape}</span>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Key Specification Badges */}
-          <div className="pdp-feature-grid">
-            <div className="pdp-feature-item">
-              <span className="pdp-feature-val">120 Points</span>
-              <span className="pdp-feature-lbl">Face Mesh</span>
-            </div>
-            <div className="pdp-feature-item">
-              <span className="pdp-feature-val">UV400</span>
-              <span className="pdp-feature-lbl">Protection</span>
-            </div>
-            <div className="pdp-feature-item">
-              <span className="pdp-feature-val">22 gram</span>
-              <span className="pdp-feature-lbl">Ultra Light</span>
-            </div>
-            <div className="pdp-feature-item">
-              <span className="pdp-feature-val">98% Fit</span>
-              <span className="pdp-feature-lbl">Accuracy</span>
             </div>
           </div>
         </div>

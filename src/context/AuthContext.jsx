@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react'
-import { API_BASE_URL } from '../api/config'
+
+const API_BASE_URL = 'http://localhost:8000/api'
 
 const AuthContext = createContext(null)
 

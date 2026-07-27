@@ -1,28 +1,38 @@
 import { useState, useEffect } from 'react'
+import Glasses3DViewer from '../../components/3d/Glasses3DViewer'
+import ProductCard from '../../components/catalog/ProductCard'
+import showcaseImg from '../../assets/glasses_showcase.png'
+import heroImg from '../../assets/hero.png'
 import './AdminCatalogPage.css'
+import '../catalog/CatalogPage.css'
 
 const API_PRODUCTS_URL = 'http://localhost:8000/api/products'
 
 const DEFAULT_PRODUCTS = [
-  { id: 1, name: 'The Cambridge', shape: 'Round', color: 'Tortoise', price: 2175000, category: 'Sunglasses', best_seller: true, description: 'Classic round silhouette' },
-  { id: 2, name: 'The Architect', shape: 'Square', color: 'Matte Black', price: 2460000, category: 'Sunglasses', best_seller: false, description: 'Titanium square frame' },
-  { id: 3, name: 'The Maverick', shape: 'Aviator', color: 'Gold', price: 2760000, category: 'Sunglasses', best_seller: true, description: 'Teardrop gold frame' },
-  { id: 4, name: 'The Ghost', shape: 'Cat Eye', color: 'Clear Crystal', price: 2235000, category: 'Blue Light', best_seller: false, description: 'Ultra-clear acetate' },
-  { id: 5, name: 'Classic Scholar', shape: 'Round', color: 'Dark Gray', price: 1890000, category: 'Reading Glasses', best_seller: false, description: 'Vintage round silhouette' },
-  { id: 6, name: 'Aero Slim', shape: 'Aviator', color: 'Midnight Black', price: 2450000, category: 'Minus', best_seller: true, description: 'Ultra-thin titanium frame' },
+  { id: 1, name: 'The Cambridge', shape: 'Round', color: 'Tortoise', price: 2175000, category: 'Sunglasses', best_seller: true, image: showcaseImg, description: 'Classic round silhouette' },
+  { id: 2, name: 'The Architect', shape: 'Square', color: 'Matte Black', price: 2460000, category: 'Sunglasses', best_seller: false, image: heroImg, description: 'Titanium square frame' },
+  { id: 3, name: 'The Maverick', shape: 'Aviator', color: 'Gold', price: 2760000, category: 'Sunglasses', best_seller: true, image: showcaseImg, description: 'Teardrop gold frame' },
+  { id: 4, name: 'The Ghost', shape: 'Cat Eye', color: 'Clear Crystal', price: 2235000, category: 'Blue Light', best_seller: false, image: heroImg, description: 'Ultra-clear acetate' },
+  { id: 5, name: 'Classic Scholar', shape: 'Round', color: 'Dark Gray', price: 1890000, category: 'Reading Glasses', best_seller: false, image: showcaseImg, description: 'Vintage round silhouette' },
+  { id: 6, name: 'Aero Slim', shape: 'Aviator', color: 'Midnight Black', price: 2450000, category: 'Minus', best_seller: true, image: heroImg, description: 'Ultra-thin titanium frame' },
 ]
 
 function AdminCatalogPage() {
   const [products, setProducts] = useState(DEFAULT_PRODUCTS)
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
+  const [viewMode, setViewMode] = useState('grid') // 'grid' or 'table'
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
+  const [show3dPreview, setShow3dPreview] = useState(true)
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
+
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Form State
   const [formData, setFormData] = useState({
@@ -99,6 +109,7 @@ function AdminCatalogPage() {
 
   const handleSave = async (e) => {
     e.preventDefault()
+    setIsSaving(true)
     const payload = {
       ...formData,
       price: parseFloat(formData.price)
@@ -126,21 +137,24 @@ function AdminCatalogPage() {
         if (res.ok) {
           showToast(`Kacamata baru "${formData.name}" berhasil ditambahkan!`)
         } else {
-          const newProd = { id: Date.now(), ...payload }
+          const newProd = { id: Date.now(), image: showcaseImg, ...payload }
           setProducts([newProd, ...products])
           showToast(`Kacamata baru "${formData.name}" ditambahkan!`)
         }
       }
-      fetchProducts()
+      await fetchProducts()
       setIsModalOpen(false)
     } catch (err) {
       console.error(err)
       setIsModalOpen(false)
+    } finally {
+      setIsSaving(false)
     }
   }
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return
+    setIsDeleting(true)
     try {
       await fetch(`${API_PRODUCTS_URL}/${deleteId}`, { method: 'DELETE' })
       setProducts(products.filter(p => p.id !== deleteId))
@@ -149,12 +163,13 @@ function AdminCatalogPage() {
       setProducts(products.filter(p => p.id !== deleteId))
       showToast('Kacamata telah dihapus.')
     } finally {
+      setIsDeleting(false)
       setDeleteId(null)
     }
   }
 
   const formatPrice = (p) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p)
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p || 0)
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -186,11 +201,37 @@ function AdminCatalogPage() {
 
       <div className="admin-catalog-header">
         <div>
-          <h1 className="admin-page-title">Kelola Katalog Kacamata</h1>
-          <p className="admin-page-sub">Manajemen inventaris frame, harga, dan varian kacamata VTO</p>
+          <h1 className="admin-page-title">Kelola Katalog Kacamata (Admin Mode)</h1>
+          <p className="admin-page-sub">Kelola inventaris kacamata, tambah produk baru, edit, dan hapus langsung dari katalog.</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button 
+            onClick={() => setShow3dPreview(!show3dPreview)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: '1px solid rgba(197, 168, 128, 0.3)',
+              background: 'rgba(28, 24, 22, 0.8)',
+              color: '#D4AF37',
+              fontSize: '0.82rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            {show3dPreview ? 'Sembunyikan 3D Preview' : 'Tampilkan 3D Preview'}
+          </button>
         </div>
       </div>
 
+      {/* Admin 3D Interactive Model Viewer */}
+      {show3dPreview && (
+        <div style={{ marginBottom: '24px' }}>
+          <Glasses3DViewer modelUrl="/models/glasses_2.glb" height="320px" modelScale={6.8} showControls={true} />
+        </div>
+      )}
+
+      {/* Stats Summary Grid */}
       <div className="admin-stats-grid">
         <div className="admin-stat-card">
           <span className="stat-val">{products.length}</span>
@@ -206,8 +247,9 @@ function AdminCatalogPage() {
         </div>
       </div>
 
+      {/* Toolbar: Search, Filter, View Mode Toggle & Create Button */}
       <div className="admin-toolbar">
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
             placeholder="Cari nama, bentuk, atau warna..."
@@ -228,70 +270,115 @@ function AdminCatalogPage() {
           </select>
         </div>
 
-        <button className="btn-add-product" onClick={handleOpenCreate}>
-          + Tambah Kacamata
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: '1.5px solid #E5DBD0',
+              background: '#FFFFFF',
+              color: '#1C1816',
+              fontWeight: '600',
+              fontSize: '0.82rem',
+              cursor: 'pointer'
+            }}
+          >
+            {viewMode === 'grid' ? 'Tampilan Tabel' : 'Tampilan Grid Cards'}
+          </button>
+
+          <button className="btn-add-product" onClick={handleOpenCreate}>
+            + Form Pembuatan Kacamata
+          </button>
+        </div>
       </div>
 
-      <div className="admin-table-card">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nama Produk</th>
-              <th>Bentuk & Warna</th>
-              <th>Kategori</th>
-              <th>Harga</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProducts.map(p => (
-              <tr key={p.id}>
-                <td style={{ fontWeight: '600', color: '#9C9086' }}>#{p.id}</td>
-                <td>
-                  <div className="table-prod-name">{p.name}</div>
-                </td>
-                <td>
-                  <span className="table-meta-tag">{p.shape} • {p.color}</span>
-                </td>
-                <td>{p.category}</td>
-                <td style={{ color: '#C5A880', fontWeight: '600' }}>{formatPrice(p.price)}</td>
-                <td>
-                  {p.best_seller ? (
-                    <span className="badge-bestseller">Best Seller</span>
-                  ) : (
-                    <span style={{ color: '#7A6F68', fontSize: '0.75rem' }}>Standar</span>
-                  )}
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <button className="btn-action-edit" onClick={() => handleOpenEdit(p)}>
-                    Edit
-                  </button>
-                  <button className="btn-action-delete" onClick={() => setDeleteId(p.id)}>
-                    Hapus
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filteredProducts.length === 0 && (
+      {/* Grid Cards View (Identical to User Catalog + Admin Edit/Delete Buttons) */}
+      {viewMode === 'grid' && (
+        <div style={{ marginTop: '20px' }}>
+          {filteredProducts.length > 0 ? (
+            <div className="cat-grid">
+              {filteredProducts.map(p => (
+                <ProductCard 
+                  key={p.id} 
+                  product={p} 
+                  isAdmin={true} 
+                  onEdit={handleOpenEdit} 
+                  onDelete={(id) => setDeleteId(id)} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="cat-empty">
+              <p>Tidak ada produk kacamata yang ditemukan.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Table View (Alternative List View) */}
+      {viewMode === 'table' && (
+        <div className="admin-table-card" style={{ marginTop: '20px' }}>
+          <table className="admin-table">
+            <thead>
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#9C9086' }}>
-                  {loading ? 'Memuat data kacamata...' : 'Tidak ada produk kacamata yang sesuai.'}
-                </td>
+                <th>ID</th>
+                <th>Nama Produk</th>
+                <th>Bentuk & Warna</th>
+                <th>Kategori</th>
+                <th>Harga</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Aksi</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filteredProducts.map(p => (
+                <tr key={p.id}>
+                  <td style={{ fontWeight: '600', color: '#9C9086' }}>#{p.id}</td>
+                  <td>
+                    <div className="table-prod-name">{p.name}</div>
+                  </td>
+                  <td>
+                    <span className="table-meta-tag">{p.shape} • {p.color}</span>
+                  </td>
+                  <td>{p.category}</td>
+                  <td style={{ color: '#C5A880', fontWeight: '600' }}>{formatPrice(p.price)}</td>
+                  <td>
+                    {p.best_seller ? (
+                      <span className="badge-bestseller">Best Seller</span>
+                    ) : (
+                      <span style={{ color: '#7A6F68', fontSize: '0.75rem' }}>Standar</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="btn-action-edit" onClick={() => handleOpenEdit(p)}>
+                      Edit
+                    </button>
+                    <button className="btn-action-delete" onClick={() => setDeleteId(p.id)}>
+                      Hapus
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filteredProducts.length === 0 && (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#9C9086' }}>
+                    {loading ? 'Memuat data kacamata...' : 'Tidak ada produk kacamata yang sesuai.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
+      {/* Form Modal Create & Edit */}
       {isModalOpen && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-box">
             <div className="modal-header">
               <h3 className="modal-title">
-                {editingProduct ? 'Edit Kacamata' : 'Tambah Kacamata Baru'}
+                {editingProduct ? 'Edit Kacamata' : 'Form Pembuatan Kacamata Baru'}
               </h3>
               <button className="btn-modal-close" onClick={() => setIsModalOpen(false)}>&times;</button>
             </div>
@@ -393,11 +480,11 @@ function AdminCatalogPage() {
               </div>
 
               <div className="modal-actions full">
-                <button type="button" className="btn-modal-cancel" onClick={() => setIsModalOpen(false)}>
+                <button type="button" className="btn-modal-cancel" onClick={() => setIsModalOpen(false)} disabled={isSaving}>
                   Batal
                 </button>
-                <button type="submit" className="btn-modal-save">
-                  Simpan Produk
+                <button type="submit" className="btn-modal-save" disabled={isSaving} style={{ opacity: isSaving ? 0.7 : 1 }}>
+                  {isSaving ? 'Menyimpan...' : 'Simpan Produk'}
                 </button>
               </div>
             </form>
@@ -405,6 +492,7 @@ function AdminCatalogPage() {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
       {deleteId && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-box" style={{ maxWidth: '420px', textAlign: 'center' }}>
@@ -413,11 +501,11 @@ function AdminCatalogPage() {
               Apakah Anda yakin ingin menghapus kacamata ini?
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-              <button className="btn-modal-cancel" onClick={() => setDeleteId(null)}>
+              <button className="btn-modal-cancel" onClick={() => setDeleteId(null)} disabled={isDeleting}>
                 Batal
               </button>
-              <button className="btn-action-delete" style={{ padding: '10px 24px' }} onClick={handleDeleteConfirm}>
-                Ya, Hapus
+              <button className="btn-action-delete" style={{ padding: '10px 24px', opacity: isDeleting ? 0.7 : 1 }} onClick={handleDeleteConfirm} disabled={isDeleting}>
+                {isDeleting ? 'Menghapus...' : 'Ya, Hapus'}
               </button>
             </div>
           </div>

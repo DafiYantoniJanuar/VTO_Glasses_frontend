@@ -1,24 +1,39 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import showcaseImg from '../../assets/glasses_showcase.png'
 import './FavoritesPage.css'
 
-const DUMMY_FAVORITES = [
-  { id: 6, name: 'Aero Matte Black', desc: 'Titanium frame, ultra-lightweight.', price: 2450000, category: 'Minus', rating: 4.8 },
-  { id: 4, name: 'Geometric Silver', desc: 'Modern angular design, blue-light blocking.', price: 1890000, category: 'Blue Light', rating: 4.5 },
-  { id: 3, name: 'Clear Honey Acetate', desc: 'Hand-polished premium acetate.', price: 3100000, category: 'Sunglasses', rating: 4.9 },
-]
-
 const formatPrice = (p) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p)
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p || 0)
 
 function FavoritesPage() {
   const navigate = useNavigate()
-  const [favorites, setFavorites] = useState(DUMMY_FAVORITES)
+  const [favorites, setFavorites] = useState([])
+  const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('Terbaru')
   const [category, setCategory] = useState('Semua Kategori')
 
-  const removeFavorite = (id) => {
-    setFavorites(prev => prev.filter(f => f.id !== id))
+  const loadFavorites = () => {
+    setLoading(true)
+    try {
+      const data = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+      setFavorites(data)
+    } catch {
+      setFavorites([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadFavorites()
+  }, [])
+
+  const removeFavorite = (product) => {
+    let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+    const updated = localFavs.filter(p => p.id !== product.id)
+    localStorage.setItem('vto_favorites', JSON.stringify(updated))
+    setFavorites(updated)
   }
 
   const filtered = favorites.filter(f =>
@@ -52,7 +67,9 @@ function FavoritesPage() {
       <div className="fav-divider" />
 
       {/* Grid */}
-      {filtered.length > 0 ? (
+      {loading ? (
+        <p style={{ color: '#9C9086', padding: '20px' }}>Memuat favorit Anda...</p>
+      ) : filtered.length > 0 ? (
         <div className="fav-grid">
           {filtered.map(item => (
             <div key={item.id} className="fav-card">
@@ -60,7 +77,7 @@ function FavoritesPage() {
               <div className="fav-img-wrap" onClick={() => navigate(`/catalog/${item.id}`)}>
                 <button
                   className="fav-heart-btn active"
-                  onClick={(e) => { e.stopPropagation(); removeFavorite(item.id) }}
+                  onClick={(e) => { e.stopPropagation(); removeFavorite(item) }}
                   title="Hapus dari Favorit"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#E05C5C" stroke="#E05C5C" strokeWidth="2">
@@ -68,10 +85,7 @@ function FavoritesPage() {
                   </svg>
                 </button>
                 <div className="fav-img-placeholder">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C5B8AF" strokeWidth="1.2">
-                    <circle cx="6" cy="15" r="3" /><circle cx="18" cy="15" r="3" />
-                    <path d="M9 15h6" /><path d="M3 15c0-4.5 2.5-7 3-7h12c.5 0 3 2.5 3 7" />
-                  </svg>
+                  <img src={item.image || showcaseImg} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
               </div>
 
@@ -79,16 +93,13 @@ function FavoritesPage() {
               <div className="fav-info">
                 <div className="fav-name-row">
                   <span className="fav-name">{item.name}</span>
-                  <span className="fav-rating">★ {item.rating}</span>
+                  <span className="fav-rating">★ {item.rating || '4.8'}</span>
                 </div>
-                <p className="fav-desc">{item.desc}</p>
+                <p className="fav-desc">{item.shape} • {item.color}</p>
                 <div className="fav-bottom">
                   <span className="fav-price">{formatPrice(item.price)}</span>
-                  <button className="fav-cart-btn" onClick={() => alert(`${item.name} ditambahkan ke keranjang!`)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                    </svg>
+                  <button className="fav-cart-btn" onClick={() => navigate(`/tryon/${item.id}`)} title="Coba Try-On">
+                    Try-On
                   </button>
                 </div>
               </div>
@@ -100,7 +111,7 @@ function FavoritesPage() {
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#C5B8AF" strokeWidth="1.2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
-          <p>Belum ada favorit</p>
+          <p>Belum ada favorit yang disimpan.</p>
           <button onClick={() => navigate('/catalog')} className="fav-browse-btn">Browse Catalog</button>
         </div>
       )}

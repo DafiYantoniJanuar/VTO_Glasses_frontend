@@ -88,22 +88,23 @@ function DashboardLayout() {
     <div className="vto-dashboard-wrapper">
       {/* Top Navbar */}
       <header className="vto-navbar">
-        <Link to="/dashboard" className="vto-nav-logo">VTO Glasses</Link>
+        <Link to={(user?.role === 'admin' || user?.email === 'admin@vtogla.com') ? "/admin/dashboard" : "/dashboard"} className="vto-nav-logo">VTO GLASSES</Link>
 
         <nav className="vto-nav-links">
-          <NavLink to="/dashboard" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
-            home
+          <NavLink 
+            to={(user?.role === 'admin' || user?.email === 'admin@vtogla.com') ? "/admin/dashboard" : "/dashboard"} 
+            className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}
+          >
+            Home
           </NavLink>
-          <NavLink to="/catalog" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
-            catalog
+          <NavLink 
+            to={(user?.role === 'admin' || user?.email === 'admin@vtogla.com') ? "/admin/catalog" : "/catalog"} 
+            className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}
+          >
+            Catalog
           </NavLink>
-          {(user?.role === 'admin' || user?.email === 'admin@vtogla.com') && (
-            <NavLink to="/admin/dashboard" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
-              admin catalog
-            </NavLink>
-          )}
           <NavLink to="/checkout" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
-            sale
+            Sale
           </NavLink>
         </nav>
 

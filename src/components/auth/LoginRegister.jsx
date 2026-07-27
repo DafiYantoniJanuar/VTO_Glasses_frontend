@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import showcaseImg from '../../assets/glasses_showcase.png'
+import Glasses3DViewer from '../3d/Glasses3DViewer'
 import './LoginRegister.css'
 
 const EyeIcon = () => (
@@ -21,16 +22,15 @@ const EyeOffIcon = () => (
 function LoginRegister() {
   const navigate = useNavigate()
   const { user, login, register, googleLogin, guestLogin } = useAuth()
-  
+
   const [activeTab, setActiveTab] = useState('login')
   const [toast, setToast] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  // Unify password visibility states (ponytail)
+
   const [showPass, setShowPass] = useState({ pwd: false, confirm: false })
   const [showGoogleModal, setShowGoogleModal] = useState(false)
   const [googleEmailInput, setGoogleEmailInput] = useState('')
-  
+
   const formRef = useRef(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -118,7 +118,7 @@ function LoginRegister() {
     try {
       const prefix = googleEmailInput.split('@')[0]
       const nameFormatted = prefix.charAt(0).toUpperCase() + prefix.slice(1)
-      
+
       const res = await googleLogin(googleEmailInput, nameFormatted)
       if (!res.success) {
         setToast({ type: 'error', message: res.error || 'Login Google gagal.' })
@@ -134,37 +134,44 @@ function LoginRegister() {
     <>
       <div className="vto-page-wrapper">
         <div className="vto-login-card">
-          
-          {/* Left side: Premium Brand Showcase */}
+
+          {/* Left side: Interactive 3D Model 1 Showcase */}
           <div className="vto-login-left">
             <div className="vto-left-header">
               <span className="vto-brand-logo">VTO Glasses</span>
             </div>
 
             <div className="vto-showcase-stage">
-              <img src={showcaseImg} className="vto-showcase-img" alt="Luxury Frame" />
-              <div className="vto-3d-badge">Showroom Premium</div>
+              <Glasses3DViewer
+                modelUrl="/models/kacamata-1.glb"
+                height="340px"
+                modelScale={2.8}
+                showControls={false}
+                showPedestal={false}
+                autoRotateSpeed={1.0}
+              />
+              <div className="vto-3d-badge">Showroom Premium • 360° Interactive</div>
             </div>
 
             <div className="vto-left-footer">
               <h1 className="vto-brand-title">AURA EYEWEAR</h1>
-              <p className="vto-brand-tagline">Defining Clarity and Style</p>
+              <p className="vto-brand-tagline">360° Interactive View</p>
             </div>
           </div>
 
-          {/* Right side: Minimalist Silent Luxury Auth Form */}
+          {/* Right side: Auth Form */}
           <div className="vto-login-right">
             <div className="vto-form-selector">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`vto-selector-btn ${activeTab === 'login' ? 'active' : ''}`}
                 onClick={() => handleTabSwitch('login')}
               >
                 Log In
               </button>
               <span className="vto-selector-divider">/</span>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`vto-selector-btn ${activeTab === 'register' ? 'active' : ''}`}
                 onClick={() => handleTabSwitch('register')}
               >
@@ -178,8 +185,8 @@ function LoginRegister() {
                   {activeTab === 'login' ? 'Selamat Datang' : 'Buat Akun'}
                 </h2>
                 <p className="vto-form-desc">
-                  {activeTab === 'login' 
-                    ? 'Masuk untuk mengakses katalog kacamata dan fitting room.' 
+                  {activeTab === 'login'
+                    ? 'Masuk untuk mengakses katalog kacamata dan fitting room.'
                     : 'Daftar untuk menikmati uji kacamata AR secara real-time.'
                   }
                 </p>
@@ -196,46 +203,46 @@ function LoginRegister() {
                 {activeTab === 'register' && (
                   <div className="vto-input-group">
                     <label className="vto-input-label">Nama Lengkap</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="name"
-                      className="vto-input-field" 
-                      placeholder="Jane Doe" 
+                      className="vto-input-field"
+                      placeholder="Jane Doe"
                       value={formData.name}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </div>
                 )}
 
                 <div className="vto-input-group">
                   <label className="vto-input-label">Alamat Email</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     name="email"
-                    className="vto-input-field" 
-                    placeholder="name@example.com" 
+                    className="vto-input-field"
+                    placeholder="name@example.com"
                     value={formData.email}
                     onChange={handleInputChange}
-                    required 
+                    required
                   />
                 </div>
 
                 <div className="vto-input-group">
                   <label className="vto-input-label">Kata Sandi</label>
                   <div className="vto-password-wrapper">
-                    <input 
+                    <input
                       type={showPass.pwd ? 'text' : 'password'}
                       name="password"
-                      className="vto-input-field" 
-                      placeholder="••••••••" 
+                      className="vto-input-field"
+                      placeholder="••••••••"
                       value={formData.password}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
-                    <button 
-                      type="button" 
-                      className="vto-pwd-toggle" 
+                    <button
+                      type="button"
+                      className="vto-pwd-toggle"
                       onClick={() => setShowPass(prev => ({ ...prev, pwd: !prev.pwd }))}
                     >
                       {showPass.pwd ? <EyeOffIcon /> : <EyeIcon />}
@@ -247,18 +254,18 @@ function LoginRegister() {
                   <div className="vto-input-group">
                     <label className="vto-input-label">Konfirmasi Kata Sandi</label>
                     <div className="vto-password-wrapper">
-                      <input 
+                      <input
                         type={showPass.confirm ? 'text' : 'password'}
                         name="confirmPassword"
-                        className="vto-input-field" 
-                        placeholder="••••••••" 
+                        className="vto-input-field"
+                        placeholder="••••••••"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
-                        required 
+                        required
                       />
-                      <button 
-                        type="button" 
-                        className="vto-pwd-toggle" 
+                      <button
+                        type="button"
+                        className="vto-pwd-toggle"
                         onClick={() => setShowPass(prev => ({ ...prev, confirm: !prev.confirm }))}
                       >
                         {showPass.confirm ? <EyeOffIcon /> : <EyeIcon />}
@@ -279,9 +286,9 @@ function LoginRegister() {
                   )}
                 </button>
 
-                <button 
-                  type="button" 
-                  className="vto-btn-google" 
+                <button
+                  type="button"
+                  className="vto-btn-google"
                   disabled={isSubmitting}
                   onClick={() => { setGoogleEmailInput(formData.email); setShowGoogleModal(true); }}
                 >
@@ -294,9 +301,9 @@ function LoginRegister() {
                   <span>Sign in with Google</span>
                 </button>
 
-                <button 
-                  type="button" 
-                  className="vto-btn-guest" 
+                <button
+                  type="button"
+                  className="vto-btn-guest"
                   disabled={isSubmitting}
                   onClick={() => { guestLogin(); navigate('/dashboard'); }}
                 >
@@ -323,10 +330,10 @@ function LoginRegister() {
 
             <div className="vto-input-group" style={{ marginBottom: '18px' }}>
               <label className="vto-input-label">Alamat Email Google</label>
-              <input 
-                type="email" 
-                className="vto-input-field" 
-                placeholder="user@gmail.com" 
+              <input
+                type="email"
+                className="vto-input-field"
+                placeholder="user@gmail.com"
                 value={googleEmailInput}
                 onChange={(e) => setGoogleEmailInput(e.target.value)}
                 required
