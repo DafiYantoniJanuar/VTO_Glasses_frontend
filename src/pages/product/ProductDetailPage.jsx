@@ -202,10 +202,9 @@ function ProductDetailPage() {
       // Center the model mesh relative to the parent group pivot
       glassesModel.position.set(-center.x, -center.y, -center.z)
 
-      // Normalize scale so the model max dimension is exactly 1.0 unit
-      const maxDim = Math.max(size.x, size.y, size.z)
-      if (maxDim > 0) {
-        const s = 1.0 / maxDim
+      // Normalize scale so the model width (X dimension) is exactly 1.0 unit
+      if (size.x > 0) {
+        const s = 1.0 / size.x
         glassesModel.scale.set(s, s, s)
       }
 
@@ -233,8 +232,10 @@ function ProductDetailPage() {
         const rightEye = landmarks[362]
         const forehead = landmarks[10]
         const chin = landmarks[152]
+        const leftTemple = landmarks[127]
+        const rightTemple = landmarks[356]
 
-        if (nose && leftEye && rightEye && glassesGroup) {
+        if (nose && leftEye && rightEye && leftTemple && rightTemple && glassesGroup) {
           glassesGroup.visible = true
 
           // Calculate face width metric (distance between left and right eye corners)
@@ -260,10 +261,6 @@ function ProductDetailPage() {
           glassesGroup.position.y = ndcY * (planeHeight / 2)
           glassesGroup.position.z = zDepth
 
-          // Target glasses width is approximately 2.3 times the eye corner distance.
-          const glassesWidth = eyeDist * planeWidth * 5.3
-          glassesGroup.scale.set(glassesWidth, glassesWidth, glassesWidth)
-
           // Map landmarks to 3D Three.js coordinate system
           const get3DPoint = (lm) => {
             const x = -(lm.x * 2 - 1) * (planeWidth / 2)
@@ -271,6 +268,17 @@ function ProductDetailPage() {
             const z = zDepth + (lm.z * planeWidth)
             return new THREE.Vector3(x, y, z)
           }
+
+          const pLeftTemple = get3DPoint(leftTemple)
+          const pRightTemple = get3DPoint(rightTemple)
+
+          // Calculate actual 3D temple-to-temple face width
+          const faceWidth3D = pLeftTemple.distanceTo(pRightTemple)
+
+          // Set glasses width to automatically match the 3D width between temples.
+          // 1.02 adds a tiny margin for a comfortable fit around the face profile.
+          const glassesWidth = faceWidth3D * 1.02
+          glassesGroup.scale.set(glassesWidth, glassesWidth, glassesWidth)
 
           const pLeft = get3DPoint(leftEye)
           const pRight = get3DPoint(rightEye)
