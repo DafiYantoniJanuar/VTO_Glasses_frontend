@@ -253,9 +253,10 @@ function ProductDetailPage() {
           const planeWidth = planeHeight * camera.aspect
 
           // Map normalized MediaPipe screen coordinates to Three.js coordinates
-          // Mirroring X axis to match the mirrored camera preview
+          // Horizontal position from nose center, vertical position from eye line (average of both eyes)
+          const eyeCenterY = (leftEye.y + rightEye.y) / 2
           const ndcX = -(nose.x * 2 - 1)
-          const ndcY = -(nose.y * 2 - 1)
+          const ndcY = -(eyeCenterY * 2 - 1)
 
           glassesGroup.position.x = ndcX * (planeWidth / 2)
           glassesGroup.position.y = ndcY * (planeHeight / 2)
