@@ -160,16 +160,16 @@ function ProductDetailPage() {
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(40, width / heightPx, 0.1, 1000)
-    camera.position.set(0, 0, 10)
+    camera.position.set(0, 0, 0)
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setSize(width, heightPx)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.2)
     scene.add(ambientLight)
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1.5)
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.8)
     mainLight.position.set(0, 4, 4)
     scene.add(mainLight)
 
@@ -199,9 +199,10 @@ function ProductDetailPage() {
       const center = box.getCenter(new THREE.Vector3())
       const size = box.getSize(new THREE.Vector3())
 
+      // Center the model mesh relative to the parent group pivot
       glassesModel.position.set(-center.x, -center.y, -center.z)
 
-      // Normalize scale
+      // Normalize scale so the model max dimension is exactly 1.0 unit
       const maxDim = Math.max(size.x, size.y, size.z)
       if (maxDim > 0) {
         const s = 1.0 / maxDim
@@ -236,42 +237,66 @@ function ProductDetailPage() {
         if (nose && leftEye && rightEye && glassesGroup) {
           glassesGroup.visible = true
 
-          // Mirror X axis since video has scaleX(-1) style
-          const ndcX = -(nose.x * 2 - 1)
-          const ndcY = -(nose.y * 2 - 1)
-          const targetZ = -5
-
-          const vFOV = camera.fov * Math.PI / 180
-          const planeHeight = 2 * Math.tan(vFOV / 2) * Math.abs(targetZ)
-          const planeWidth = planeHeight * camera.aspect
-
-          glassesGroup.position.x = ndcX * (planeWidth / 2)
-          glassesGroup.position.y = ndcY * (planeHeight / 2)
-          // Add subtle depth offset
-          glassesGroup.position.z = targetZ + (1.0 - nose.z) * 2
-
-          // Dynamic scale based on eye distance
+          // Calculate face width metric (distance between left and right eye corners)
           const dx = rightEye.x - leftEye.x
           const dy = rightEye.y - leftEye.y
           const eyeDist = Math.sqrt(dx * dx + dy * dy)
 
-          const baseScale = eyeDist * planeWidth * 1.05
-          glassesGroup.scale.set(baseScale, baseScale, baseScale)
+          // Calculate depth based on the distance between eyes.
+          // Since camera is at Z=0, we place it in front of the camera (negative Z).
+          // Numerator 1.0 matches the FOV and provides natural sizing.
+          const zDepth = -1.0 / (eyeDist || 0.1)
 
-          // Y-axis rotation (Yaw)
-          const distToLeft = Math.abs(nose.x - leftEye.x)
-          const distToRight = Math.abs(nose.x - rightEye.x)
-          const yaw = (distToLeft - distToRight) / (distToLeft + distToRight || 1)
-          glassesGroup.rotation.y = yaw * 1.2
+          const vFOV = camera.fov * Math.PI / 180
+          const planeHeight = 2 * Math.tan(vFOV / 2) * Math.abs(zDepth)
+          const planeWidth = planeHeight * camera.aspect
 
-          // Z-axis rotation (Roll)
-          const roll = Math.atan2(dy, dx)
-          glassesGroup.rotation.z = -roll
+          // Map normalized MediaPipe screen coordinates to Three.js coordinates
+          // Mirroring X axis to match the mirrored camera preview
+          const ndcX = -(nose.x * 2 - 1)
+          const ndcY = -(nose.y * 2 - 1)
 
-          // X-axis rotation (Pitch)
-          const faceHeight = Math.abs(forehead.y - chin.y)
-          const pitch = (nose.y - (forehead.y + chin.y) / 2) / (faceHeight || 1)
-          glassesGroup.rotation.x = pitch * 1.5
+          glassesGroup.position.x = ndcX * (planeWidth / 2)
+          glassesGroup.position.y = ndcY * (planeHeight / 2)
+          glassesGroup.position.z = zDepth
+
+          // Target glasses width is approximately 1.9 times the eye corner distance.
+          const glassesWidth = eyeDist * planeWidth * 1.9
+          glassesGroup.scale.set(glassesWidth, glassesWidth, glassesWidth)
+
+          // Map landmarks to 3D Three.js coordinate system
+          const get3DPoint = (lm) => {
+            const x = -(lm.x * 2 - 1) * (planeWidth / 2)
+            const y = -(lm.y * 2 - 1) * (planeHeight / 2)
+            const z = zDepth + (lm.z * planeWidth)
+            return new THREE.Vector3(x, y, z)
+          }
+
+          const pLeft = get3DPoint(leftEye)
+          const pRight = get3DPoint(rightEye)
+          const pForehead = get3DPoint(forehead)
+          const pChin = get3DPoint(chin)
+
+          // Calculate 3D orientation basis vectors
+          const vX = new THREE.Vector3().subVectors(pRight, pLeft).normalize()
+          const vY = new THREE.Vector3().subVectors(pForehead, pChin).normalize()
+          const vZ = new THREE.Vector3().crossVectors(vX, vY).normalize()
+
+          // Orthogonalize rotation basis
+          vY.crossVectors(vZ, vX).normalize()
+
+          // Create basis rotation matrix
+          const m = new THREE.Matrix4()
+          m.makeBasis(vX, vY, vZ)
+          glassesGroup.rotation.setFromRotationMatrix(m)
+
+          // Apply micro vertical and depth offsets relative to the face orientation
+          // Shift down slightly so frame rests on the nose bridge, and slightly forward to prevent lens clipping.
+          const verticalOffset = -0.04
+          const depthOffset = 0.05
+          const yOffsetVec = vY.clone().multiplyScalar(verticalOffset * glassesWidth)
+          const zOffsetVec = vZ.clone().multiplyScalar(depthOffset * glassesWidth)
+          glassesGroup.position.add(yOffsetVec).add(zOffsetVec)
         }
       } else {
         if (glassesGroup) {
