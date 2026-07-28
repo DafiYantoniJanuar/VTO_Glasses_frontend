@@ -62,7 +62,7 @@ function ProductDetailPage() {
   const arCanvasRef = useRef(null)
   const cameraUtilsRef = useRef(null)
   const faceMeshRef = useRef(null)
-  
+
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState(null)
   const [loadingARScripts, setLoadingARScripts] = useState(false)
@@ -95,11 +95,11 @@ function ProductDetailPage() {
   const toggleCamera = async () => {
     if (cameraActive) {
       if (cameraUtilsRef.current) {
-        try { cameraUtilsRef.current.stop() } catch {}
+        try { cameraUtilsRef.current.stop() } catch { }
         cameraUtilsRef.current = null
       }
       if (faceMeshRef.current) {
-        try { faceMeshRef.current.close() } catch {}
+        try { faceMeshRef.current.close() } catch { }
         faceMeshRef.current = null
       }
       if (videoRef.current && videoRef.current.srcObject) {
@@ -137,10 +137,10 @@ function ProductDetailPage() {
     const videoNode = videoRef.current
     return () => {
       if (cameraUtilsRef.current) {
-        try { cameraUtilsRef.current.stop() } catch {}
+        try { cameraUtilsRef.current.stop() } catch { }
       }
       if (faceMeshRef.current) {
-        try { faceMeshRef.current.close() } catch {}
+        try { faceMeshRef.current.close() } catch { }
       }
       if (videoNode && videoNode.srcObject) {
         const tracks = videoNode.srcObject.getTracks()
@@ -261,7 +261,7 @@ function ProductDetailPage() {
           glassesGroup.position.z = zDepth
 
           // Target glasses width is approximately 2.3 times the eye corner distance.
-          const glassesWidth = eyeDist * planeWidth * 2.3
+          const glassesWidth = eyeDist * planeWidth * 5.3
           glassesGroup.scale.set(glassesWidth, glassesWidth, glassesWidth)
 
           // Map landmarks to 3D Three.js coordinate system
@@ -312,7 +312,7 @@ function ProductDetailPage() {
         if (videoRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
           try {
             await faceMesh.send({ image: videoRef.current })
-          } catch {}
+          } catch { }
         }
       },
       width: 640,
@@ -324,7 +324,7 @@ function ProductDetailPage() {
 
     return () => {
       active = false
-      try { faceMesh.close() } catch {}
+      try { faceMesh.close() } catch { }
       renderer.dispose()
     }
   }, [cameraActive, product.modelUrl])
@@ -488,19 +488,19 @@ function ProductDetailPage() {
             <>
               <div className="pdp-ar-preview-stage">
                 <span className="pdp-ar-pulse-dot" style={{ backgroundColor: cameraActive ? '#22C55E' : '#C5A880' }} />
-                
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
-                  muted 
+
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
                   style={{
                     display: cameraActive ? 'block' : 'none',
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                     transform: 'scaleX(-1)'
-                  }} 
+                  }}
                 />
 
                 {cameraActive && (
