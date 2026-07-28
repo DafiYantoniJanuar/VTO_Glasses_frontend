@@ -284,9 +284,11 @@ function ProductDetailPage() {
     const cameraHelper = new window.Camera(videoRef.current, {
       onFrame: async () => {
         if (!active) return
-        try {
-          await faceMesh.send({ image: videoRef.current })
-        } catch {}
+        if (videoRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+          try {
+            await faceMesh.send({ image: videoRef.current })
+          } catch {}
+        }
       },
       width: 640,
       height: 480
