@@ -260,8 +260,8 @@ function ProductDetailPage() {
           glassesGroup.position.y = ndcY * (planeHeight / 2)
           glassesGroup.position.z = zDepth
 
-          // Target glasses width is approximately 1.9 times the eye corner distance.
-          const glassesWidth = eyeDist * planeWidth * 1.9
+          // Target glasses width is approximately 2.3 times the eye corner distance.
+          const glassesWidth = eyeDist * planeWidth * 2.3
           glassesGroup.scale.set(glassesWidth, glassesWidth, glassesWidth)
 
           // Map landmarks to 3D Three.js coordinate system
