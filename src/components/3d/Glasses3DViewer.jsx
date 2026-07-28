@@ -71,7 +71,19 @@ function Glasses3DViewer({
       model.position.set(0, 0, 0)
       model.scale.set(1, 1, 1)
 
-      const box = new THREE.Box3().setFromObject(model)
+      const box = new THREE.Box3()
+      let hasMesh = false
+      model.traverse((child) => {
+        if (child.isMesh) {
+          box.expandByObject(child)
+          hasMesh = true
+        }
+      })
+
+      if (!hasMesh) {
+        box.setFromObject(model)
+      }
+
       const center = box.getCenter(new THREE.Vector3())
       const size = box.getSize(new THREE.Vector3())
 
@@ -81,8 +93,20 @@ function Glasses3DViewer({
         model.scale.set(calculatedScale, calculatedScale, calculatedScale)
       }
 
-      // Center the model's scaled bounding box at exactly (0, 0, 0)
-      const boxScaled = new THREE.Box3().setFromObject(model)
+      // Center the model's scaled bounding box using meshes
+      const boxScaled = new THREE.Box3()
+      let hasMeshScaled = false
+      model.traverse((child) => {
+        if (child.isMesh) {
+          boxScaled.expandByObject(child)
+          hasMeshScaled = true
+        }
+      })
+
+      if (!hasMeshScaled) {
+        boxScaled.setFromObject(model)
+      }
+
       const centerScaled = boxScaled.getCenter(new THREE.Vector3())
       
       model.position.x = -centerScaled.x

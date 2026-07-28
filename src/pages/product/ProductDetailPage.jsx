@@ -182,8 +182,20 @@ function ProductDetailPage() {
       if (!active) return
       glassesModel = gltf.scene
 
-      // Center the model pivot
-      const box = new THREE.Box3().setFromObject(glassesModel)
+      // Center the model pivot using meshes only
+      const box = new THREE.Box3()
+      let hasMesh = false
+      glassesModel.traverse((child) => {
+        if (child.isMesh) {
+          box.expandByObject(child)
+          hasMesh = true
+        }
+      })
+
+      if (!hasMesh) {
+        box.setFromObject(glassesModel)
+      }
+
       const center = box.getCenter(new THREE.Vector3())
       const size = box.getSize(new THREE.Vector3())
 
