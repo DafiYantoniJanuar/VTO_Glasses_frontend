@@ -106,6 +106,11 @@ function DashboardLayout() {
           <NavLink to="/checkout" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
             Sale
           </NavLink>
+          {(user?.role === 'admin' || user?.email === 'admin@vtogla.com') && (
+            <NavLink to="/admin/orders" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
+              Orders
+            </NavLink>
+          )}
         </nav>
 
         <div className="vto-nav-actions">

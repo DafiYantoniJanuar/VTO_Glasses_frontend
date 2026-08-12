@@ -11,10 +11,12 @@ function DashboardHome() {
   const [favoritesList, setFavoritesList] = useState([])
   const [loadingFavs, setLoadingFavs] = useState(false)
 
+  const isLoggedIn = user && !user.isGuest && user.token
+
   const loadUserFavorites = async () => {
     setLoadingFavs(true)
     try {
-      if (user?.token) {
+      if (isLoggedIn) {
         const res = await fetch('http://localhost:8000/api/favorites', {
           headers: { 'Authorization': `Bearer ${user.token}`, 'Accept': 'application/json' }
         })
@@ -39,11 +41,15 @@ function DashboardHome() {
   }, [activeTab])
 
   const handleRemoveFavorite = async (product) => {
-    if (user?.token && product.id) {
+    if (isLoggedIn && product.id) {
       try {
         await fetch('http://localhost:8000/api/favorites/toggle', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.token}`,
+            'Accept': 'application/json'
+          },
           body: JSON.stringify({ product_id: product.id })
         })
       } catch (e) { console.error(e) }
@@ -52,6 +58,7 @@ function DashboardHome() {
     localStorage.setItem('vto_favorites', JSON.stringify(localFavs.filter(p => p.id !== product.id)))
     loadUserFavorites()
   }
+
 
   const formatPrice = (p) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p || 0)
@@ -157,7 +164,7 @@ function DashboardHome() {
 
                       <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
                         <button
-                          onClick={() => navigate(`/tryon/${item.id}`)}
+                          onClick={() => navigate(`/catalog/${item.id}`)}
                           style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', backgroundColor: '#C5A880', color: '#1C1816', fontWeight: '600', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
                         >
                           Try-On

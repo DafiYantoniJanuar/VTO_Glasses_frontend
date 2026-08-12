@@ -1,25 +1,49 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import showcaseImg from '../../assets/glasses_showcase.png'
 import './FavoritesPage.css'
+
+const API_BASE_URL = 'http://localhost:8000/api'
 
 const formatPrice = (p) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p || 0)
 
 function FavoritesPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('Terbaru')
   const [category, setCategory] = useState('Semua Kategori')
 
-  const loadFavorites = () => {
+  const isLoggedIn = user && !user.isGuest && user.token
+
+  const loadFavorites = async () => {
     setLoading(true)
     try {
+      if (isLoggedIn) {
+        // Fetch from backend API
+        const res = await fetch(`${API_BASE_URL}/favorites`, {
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Accept': 'application/json'
+          }
+        })
+        if (res.ok) {
+          const json = await res.json()
+          setFavorites(json.data || [])
+          setLoading(false)
+          return
+        }
+      }
+      // Guest or API failed: fallback to localStorage
       const data = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
       setFavorites(data)
     } catch {
-      setFavorites([])
+      // Final fallback
+      const data = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+      setFavorites(data)
     } finally {
       setLoading(false)
     }
@@ -27,18 +51,42 @@ function FavoritesPage() {
 
   useEffect(() => {
     loadFavorites()
-  }, [])
+  }, [isLoggedIn])
 
-  const removeFavorite = (product) => {
+  const removeFavorite = async (product) => {
+    if (isLoggedIn) {
+      // Call backend API to remove
+      try {
+        await fetch(`${API_BASE_URL}/favorites/toggle`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.token}`,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ product_id: product.id })
+        })
+      } catch (e) {
+        console.error('Failed to remove favorite via API:', e)
+      }
+    }
+    // Also update localStorage for consistency
     let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
     const updated = localFavs.filter(p => p.id !== product.id)
     localStorage.setItem('vto_favorites', JSON.stringify(updated))
-    setFavorites(updated)
+
+    // Reload favorites from source of truth
+    await loadFavorites()
   }
 
-  const filtered = favorites.filter(f =>
-    category === 'Semua Kategori' ? true : f.category === category
-  )
+  // Apply filters and sorting
+  const filtered = favorites
+    .filter(f => category === 'Semua Kategori' ? true : f.category === category)
+    .sort((a, b) => {
+      if (sort === 'Harga: Murah ke Mahal') return (a.price || 0) - (b.price || 0)
+      if (sort === 'Rating Tertinggi') return (b.rating || 0) - (a.rating || 0)
+      return 0 // Terbaru = no sorting (original order)
+    })
 
   return (
     <div className="fav-wrapper">
@@ -98,7 +146,7 @@ function FavoritesPage() {
                 <p className="fav-desc">{item.shape} • {item.color}</p>
                 <div className="fav-bottom">
                   <span className="fav-price">{formatPrice(item.price)}</span>
-                  <button className="fav-cart-btn" onClick={() => navigate(`/tryon/${item.id}`)} title="Coba Try-On">
+                  <button className="fav-cart-btn" onClick={() => navigate(`/catalog/${item.id}`)} title="Lihat Detail & Try-On">
                     Try-On
                   </button>
                 </div>

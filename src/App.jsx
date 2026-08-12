@@ -10,6 +10,7 @@ import TryOnHistoryPage from './pages/history/TryOnHistoryPage'
 import CheckoutPage from './pages/checkout/CheckoutPage'
 import DashboardHome from './pages/dashboard/DashboardHome'
 import AdminCatalogPage from './pages/admin/AdminCatalogPage'
+import AdminOrdersPage from './pages/admin/AdminOrdersPage'
 import './App.css'
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
             {/* Admin Dedicated CRUD Routes */}
             <Route path="/admin/dashboard" element={<HomePage />} />
             <Route path="/admin/catalog" element={<AdminCatalogPage />} />
+            <Route path="/admin/orders" element={<AdminOrdersPage />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           </Route>
 

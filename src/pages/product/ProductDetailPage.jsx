@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { useAuth } from '../../context/AuthContext'
 import showcaseImg from '../../assets/glasses_showcase.png'
 import heroImg from '../../assets/hero.png'
 import Glasses3DViewer from '../../components/3d/Glasses3DViewer'
 import './ProductDetailPage.css'
+
+const API_BASE_URL = 'http://localhost:8000/api'
 
 const loadScript = (src) => {
   return new Promise((resolve, reject) => {
@@ -33,6 +36,9 @@ const DUMMY_PRODUCTS = {
 const formatPrice = (p) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p)
 
+// Temporal smoothing helper — lerp for scalars
+const lerp = (prev, next, alpha) => prev + (next - prev) * alpha
+
 function StarRating({ rating, total }) {
   return (
     <div className="pdp-stars">
@@ -52,12 +58,13 @@ function StarRating({ rating, total }) {
 function ProductDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)
   const [activeTab, setActiveTab] = useState('description')
   const [previewMode, setPreviewMode] = useState('3d') // '3d' or 'camera'
   const [toastMessage, setToastMessage] = useState(null)
 
-  // Camera State directly inside Fitting Room panel
+  // Camera State
   const videoRef = useRef(null)
   const arCanvasRef = useRef(null)
   const cameraUtilsRef = useRef(null)
@@ -66,32 +73,116 @@ function ProductDetailPage() {
   const [cameraActive, setCameraActive] = useState(false)
   const [cameraError, setCameraError] = useState(null)
   const [loadingARScripts, setLoadingARScripts] = useState(false)
+  const [faceDetected, setFaceDetected] = useState(false)
+
+  // ─── TRY-ON HISTORY LOGGING LOGIC ───
+  const historyLoggedRef = useRef(false)
+  const logTryOnHistoryRef = useRef(null)
 
   const product = DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1]
 
-  // Sync initial favorite state from local storage
+  // ─── FAVORITES LOGIC (API + localStorage sync) ───
+  const isLoggedIn = user && !user.isGuest && user.token
+
+  // Keep latest logging function in ref to avoid re-triggering camera useEffect
   useEffect(() => {
-    let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
-    setIsFavorite(localFavs.some(p => p.id === product.id))
-  }, [product.id])
+    logTryOnHistoryRef.current = async () => {
+      if (isLoggedIn) {
+        try {
+          await fetch(`${API_BASE_URL}/history`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${user.token}`,
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ product_id: product.id })
+          })
+        } catch (e) {
+          console.error('Failed to log history on backend:', e)
+        }
+      }
+      
+      // Always store to local storage for guests and offline cache
+      let localHist = JSON.parse(localStorage.getItem('vto_history') || '[]')
+      localHist = localHist.filter(h => h.productId !== product.id)
+      localHist.unshift({
+        id: Date.now(),
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        dateLabel: 'Baru saja'
+      })
+      if (localHist.length > 20) {
+        localHist = localHist.slice(0, 20)
+      }
+      localStorage.setItem('vto_history', JSON.stringify(localHist))
+    }
+  }, [product, isLoggedIn, user?.token])
+
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (isLoggedIn) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/favorites`, {
+            headers: { 'Authorization': `Bearer ${user.token}`, 'Accept': 'application/json' }
+          })
+          if (res.ok) {
+            const json = await res.json()
+            const favIds = (json.data || []).map(p => p.id)
+            setIsFavorite(favIds.includes(product.id))
+            return
+          }
+        } catch { /* fallback to localStorage */ }
+      }
+      // Guest or API failed: check localStorage
+      const localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+      setIsFavorite(localFavs.some(p => p.id === product.id))
+    }
+    checkFavorite()
+  }, [product.id, isLoggedIn, user?.token])
 
   const handleToggleFav = async () => {
-    let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
-    const exists = localFavs.some(p => p.id === product.id)
-    let updated
-    if (exists) {
-      updated = localFavs.filter(p => p.id !== product.id)
-      setIsFavorite(false)
-      setToastMessage('Dihapus dari favorit.')
+    if (isLoggedIn) {
+      // Call backend API
+      try {
+        const res = await fetch(`${API_BASE_URL}/favorites/toggle`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.token}`,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ product_id: product.id })
+        })
+        if (res.ok) {
+          const json = await res.json()
+          setIsFavorite(json.is_favorited)
+          setToastMessage(json.is_favorited ? 'Ditambahkan ke favorit.' : 'Dihapus dari favorit.')
+        }
+      } catch {
+        setToastMessage('Gagal mengubah favorit.')
+      }
     } else {
-      updated = [...localFavs, product]
-      setIsFavorite(true)
-      setToastMessage('Ditambahkan ke favorit.')
+      // Guest: localStorage only
+      let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+      const exists = localFavs.some(p => p.id === product.id)
+      if (exists) {
+        localFavs = localFavs.filter(p => p.id !== product.id)
+        setIsFavorite(false)
+        setToastMessage('Dihapus dari favorit.')
+      } else {
+        localFavs = [...localFavs, product]
+        setIsFavorite(true)
+        setToastMessage('Ditambahkan ke favorit.')
+      }
+      localStorage.setItem('vto_favorites', JSON.stringify(localFavs))
     }
-    localStorage.setItem('vto_favorites', JSON.stringify(updated))
     setTimeout(() => setToastMessage(null), 3000)
   }
 
+  // ─── CAMERA TOGGLE ───
   const toggleCamera = async () => {
     if (cameraActive) {
       if (cameraUtilsRef.current) {
@@ -108,6 +199,8 @@ function ProductDetailPage() {
         videoRef.current.srcObject = null
       }
       setCameraActive(false)
+      setFaceDetected(false)
+      historyLoggedRef.current = false
     } else {
       setCameraError(null)
       setLoadingARScripts(true)
@@ -149,40 +242,52 @@ function ProductDetailPage() {
     }
   }, [])
 
-  // MediaPipe + Three.js Face Mesh Overlay Tracker Effect
+  // ─── MEDIAPIPE + THREE.JS AR OVERLAY (REWRITTEN WITH ORTHOGRAPHIC) ───
   useEffect(() => {
     if (!cameraActive || !videoRef.current || !arCanvasRef.current) return
 
     let active = true
     const canvas = arCanvasRef.current
-    const width = canvas.clientWidth || 320
-    const heightPx = canvas.clientHeight || 280
+
+    // Fixed resolution matching the video feed exactly
+    const VIDEO_W = 640
+    const VIDEO_H = 480
+
+    // Set canvas internal resolution to match video
+    canvas.width = VIDEO_W
+    canvas.height = VIDEO_H
 
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(40, width / heightPx, 0.1, 1000)
-    camera.position.set(0, 0, 0)
+
+    // Orthographic Camera mapping directly to 640x480 pixel space
+    // Center of the canvas is (0, 0).
+    const camera = new THREE.OrthographicCamera(-320, 320, 240, -240, 0.1, 2000)
+    camera.position.set(0, 0, 1000)
+    camera.lookAt(0, 0, 0)
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-    renderer.setSize(width, heightPx)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setSize(VIDEO_W, VIDEO_H, false)
+    renderer.setPixelRatio(1)
 
+    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 2.2)
     scene.add(ambientLight)
 
     const mainLight = new THREE.DirectionalLight(0xffffff, 1.8)
-    mainLight.position.set(0, 4, 4)
+    mainLight.position.set(0, 200, 300)
     scene.add(mainLight)
 
     const glassesGroup = new THREE.Group()
     scene.add(glassesGroup)
 
+    // Load 3D model
     let glassesModel = null
     const loader = new GLTFLoader()
     loader.load(product.modelUrl, (gltf) => {
       if (!active) return
       glassesModel = gltf.scene
 
-      // Center the model pivot using meshes only
+      // Center the model pivot using mesh bounding box
       const box = new THREE.Box3()
       let hasMesh = false
       glassesModel.traverse((child) => {
@@ -199,10 +304,10 @@ function ProductDetailPage() {
       const center = box.getCenter(new THREE.Vector3())
       const size = box.getSize(new THREE.Vector3())
 
-      // Center the model mesh relative to the parent group pivot
+      // Center the model so its pivot is at its geometric center
       glassesModel.position.set(-center.x, -center.y, -center.z)
 
-      // Normalize scale so the model width (X dimension) is exactly 1.0 unit
+      // Normalize scale so the model width (X dimension) = 1.0 unit
       if (size.x > 0) {
         const s = 1.0 / size.x
         glassesModel.scale.set(s, s, s)
@@ -212,6 +317,19 @@ function ProductDetailPage() {
       glassesGroup.visible = false
     })
 
+    // ─── Temporal smoothing state ───
+    const smoothState = {
+      posX: null, posY: null, posZ: null,
+      scaleVal: null,
+      rotQuat: null,
+      initialized: false
+    }
+
+    const SMOOTH_POS = 0.50
+    const SMOOTH_SCALE = 0.40
+    const SMOOTH_ROT = 0.45
+
+    // FaceMesh setup
     const faceMesh = new window.FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     })
@@ -225,92 +343,102 @@ function ProductDetailPage() {
 
     faceMesh.onResults((results) => {
       if (!active) return
+
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0]
-        const nose = landmarks[168]
-        const leftEye = landmarks[133]
-        const rightEye = landmarks[362]
+
+        // Key landmarks for alignment
+        const noseBridge = landmarks[6] // Center of nose bridge (exactly between the eyes)
+        const leftEyeOuter = landmarks[33]
+        const rightEyeOuter = landmarks[263]
         const forehead = landmarks[10]
         const chin = landmarks[152]
         const leftTemple = landmarks[127]
         const rightTemple = landmarks[356]
 
-        if (nose && leftEye && rightEye && leftTemple && rightTemple && glassesGroup) {
+        if (noseBridge && leftEyeOuter && rightEyeOuter && forehead && chin && leftTemple && rightTemple && glassesGroup) {
+          setFaceDetected(true)
           glassesGroup.visible = true
 
-          // Calculate face width metric (distance between left and right eye corners)
-          const dx = rightEye.x - leftEye.x
-          const dy = rightEye.y - leftEye.y
-          const eyeDist = Math.sqrt(dx * dx + dy * dy)
-
-          // Calculate depth based on the distance between eyes.
-          // Since camera is at Z=0, we place it in front of the camera (negative Z).
-          // Numerator 1.0 matches the FOV and provides natural sizing.
-          const zDepth = -1.0 / (eyeDist || 0.1)
-
-          const vFOV = camera.fov * Math.PI / 180
-          const planeHeight = 2 * Math.tan(vFOV / 2) * Math.abs(zDepth)
-          const planeWidth = planeHeight * camera.aspect
-
-          // Map normalized MediaPipe screen coordinates to Three.js coordinates
-          // Horizontal position from nose center, vertical position from eye line (average of both eyes)
-          const eyeCenterY = (leftEye.y + rightEye.y) / 2
-          const ndcX = -(nose.x * 2 - 1)
-          const ndcY = -(eyeCenterY * 2 - 1)
-
-          glassesGroup.position.x = ndcX * (planeWidth / 2)
-          glassesGroup.position.y = ndcY * (planeHeight / 2)
-          glassesGroup.position.z = zDepth
-
-          // Map landmarks to 3D Three.js coordinate system
-          const get3DPoint = (lm) => {
-            const x = -(lm.x * 2 - 1) * (planeWidth / 2)
-            const y = -(lm.y * 2 - 1) * (planeHeight / 2)
-            const z = zDepth + (lm.z * planeWidth)
-            return new THREE.Vector3(x, y, z)
+          if (!historyLoggedRef.current) {
+            historyLoggedRef.current = true
+            if (logTryOnHistoryRef.current) {
+              logTryOnHistoryRef.current()
+            }
           }
 
+          // Helper to map normalized landmark to orthographic 3D pixel coordinate
+          const get3DPoint = (lm) => {
+            return new THREE.Vector3(
+              (lm.x - 0.5) * VIDEO_W,
+              (0.5 - lm.y) * VIDEO_H,
+              -lm.z * VIDEO_W // depth approximation scaled to match X/Y
+            )
+          }
+
+          const pNoseBridge = get3DPoint(noseBridge)
           const pLeftTemple = get3DPoint(leftTemple)
           const pRightTemple = get3DPoint(rightTemple)
-
-          // Calculate actual 3D temple-to-temple face width
-          const faceWidth3D = pLeftTemple.distanceTo(pRightTemple)
-
-          // Set glasses width to automatically match the 3D width between temples.
-          // 1.02 adds a tiny margin for a comfortable fit around the face profile.
-          const glassesWidth = faceWidth3D * 1.02
-          glassesGroup.scale.set(glassesWidth, glassesWidth, glassesWidth)
-
-          const pLeft = get3DPoint(leftEye)
-          const pRight = get3DPoint(rightEye)
+          const pLeftEye = get3DPoint(leftEyeOuter)
+          const pRightEye = get3DPoint(rightEyeOuter)
           const pForehead = get3DPoint(forehead)
           const pChin = get3DPoint(chin)
 
-          // Calculate 3D orientation basis vectors
-          const vX = new THREE.Vector3().subVectors(pRight, pLeft).normalize()
-          const vY = new THREE.Vector3().subVectors(pForehead, pChin).normalize()
-          const vZ = new THREE.Vector3().crossVectors(vX, vY).normalize()
+          // 1. Position: anchored directly on the nose bridge
+          const rawPosX = pNoseBridge.x
+          const rawPosY = pNoseBridge.y
+          const rawPosZ = pNoseBridge.z
 
-          // Orthogonalize rotation basis
-          vY.crossVectors(vZ, vX).normalize()
+          // 2. Sizing: distance between left and right temple landmarks in pixel space
+          const faceWidth = pLeftTemple.distanceTo(pRightTemple)
+          // 1.05 adds a tiny padding to fit around the face profile nicely
+          const rawScale = faceWidth * 1.05
 
-          // Create basis rotation matrix
-          const m = new THREE.Matrix4()
-          m.makeBasis(vX, vY, vZ)
-          glassesGroup.rotation.setFromRotationMatrix(m)
+          // 3. Rotation: build face coordinate system
+          const vX = new THREE.Vector3().subVectors(pRightEye, pLeftEye).normalize()
+          const vYRaw = new THREE.Vector3().subVectors(pForehead, pChin).normalize()
+          const vZ = new THREE.Vector3().crossVectors(vX, vYRaw).normalize()
+          const vY = new THREE.Vector3().crossVectors(vZ, vX).normalize()
 
-          // Apply micro vertical and depth offsets relative to the face orientation
-          // Shift down slightly so frame rests on the nose bridge, and slightly forward to prevent lens clipping.
-          const verticalOffset = -0.04
-          const depthOffset = 0.05
-          const yOffsetVec = vY.clone().multiplyScalar(verticalOffset * glassesWidth)
-          const zOffsetVec = vZ.clone().multiplyScalar(depthOffset * glassesWidth)
+          const rotMatrix = new THREE.Matrix4().makeBasis(vX, vY, vZ)
+          const rawQuat = new THREE.Quaternion().setFromRotationMatrix(rotMatrix)
+
+          // ─── TEMPORAL SMOOTHING ───
+          if (!smoothState.initialized) {
+            smoothState.posX = rawPosX
+            smoothState.posY = rawPosY
+            smoothState.posZ = rawPosZ
+            smoothState.scaleVal = rawScale
+            smoothState.rotQuat = rawQuat.clone()
+            smoothState.initialized = true
+          } else {
+            smoothState.posX = lerp(smoothState.posX, rawPosX, SMOOTH_POS)
+            smoothState.posY = lerp(smoothState.posY, rawPosY, SMOOTH_POS)
+            smoothState.posZ = lerp(smoothState.posZ, rawPosZ, SMOOTH_POS)
+            smoothState.scaleVal = lerp(smoothState.scaleVal, rawScale, SMOOTH_SCALE)
+            smoothState.rotQuat.slerp(rawQuat, SMOOTH_ROT)
+          }
+
+          // Apply smoothed transform
+          glassesGroup.position.set(smoothState.posX, smoothState.posY, smoothState.posZ)
+          glassesGroup.scale.setScalar(smoothState.scaleVal)
+          glassesGroup.quaternion.copy(smoothState.rotQuat)
+
+          // Apply offset in face-local space:
+          // - Shift down slightly so frame sits on nose bridge (y direction)
+          // - Shift forward slightly to avoid lens clipping (z direction)
+          const verticalOffset = -0.04 * smoothState.scaleVal
+          const depthOffset = 0.08 * smoothState.scaleVal
+          const yOffsetVec = vY.clone().multiplyScalar(verticalOffset)
+          const zOffsetVec = vZ.clone().multiplyScalar(depthOffset)
           glassesGroup.position.add(yOffsetVec).add(zOffsetVec)
         }
       } else {
+        setFaceDetected(false)
         if (glassesGroup) {
           glassesGroup.visible = false
         }
+        smoothState.initialized = false
       }
       renderer.render(scene, camera)
     })
@@ -324,8 +452,8 @@ function ProductDetailPage() {
           } catch { }
         }
       },
-      width: 640,
-      height: 480
+      width: VIDEO_W,
+      height: VIDEO_H
     })
     cameraHelper.start()
     cameraUtilsRef.current = cameraHelper
@@ -338,7 +466,70 @@ function ProductDetailPage() {
     }
   }, [cameraActive, product.modelUrl])
 
+  // ─── CAPTURE SCREENSHOT ───
+  const handleCapture = useCallback(() => {
+    if (!videoRef.current || !arCanvasRef.current) return
+
+    const video = videoRef.current
+    const arCanvas = arCanvasRef.current
+
+    // Create offscreen canvas with video dimensions
+    const captureCanvas = document.createElement('canvas')
+    captureCanvas.width = 640
+    captureCanvas.height = 480
+    const ctx = captureCanvas.getContext('2d')
+
+    // Draw both video and overlay inside the mirrored matrix so they align perfectly
+    ctx.save()
+    ctx.translate(captureCanvas.width, 0)
+    ctx.scale(-1, 1)
+    
+    // Draw mirrored video frame
+    ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height)
+    
+    // Draw mirrored Three.js AR overlay
+    ctx.drawImage(arCanvas, 0, 0, captureCanvas.width, captureCanvas.height)
+    ctx.restore()
+
+    // Add watermark
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
+    ctx.font = '14px Outfit, sans-serif'
+    ctx.fillText(`VTO Glasses — ${product.name}`, 16, captureCanvas.height - 16)
+
+    // Trigger download
+    const link = document.createElement('a')
+    link.download = `VTO_TryOn_${product.name.replace(/\s+/g, '_')}_${Date.now()}.png`
+    link.href = captureCanvas.toDataURL('image/png')
+    link.click()
+
+    setToastMessage('Screenshot berhasil disimpan!')
+    setTimeout(() => setToastMessage(null), 3000)
+  }, [product.name])
+
+
   const handleAddToCart = () => {
+    if (user?.isGuest) {
+      alert('Silakan login terlebih dahulu untuk menambahkan produk ke keranjang belanja.')
+      navigate('/login')
+      return
+    }
+    let cart = JSON.parse(localStorage.getItem('vto_cart') || '[]')
+    const existingIndex = cart.findIndex(item => item.id === product.id)
+    if (existingIndex > -1) {
+      cart[existingIndex].qty += 1
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        shape: product.shape,
+        color: product.color,
+        price: product.price,
+        image: product.image || showcaseImg,
+        category: product.category,
+        qty: 1
+      })
+    }
+    localStorage.setItem('vto_cart', JSON.stringify(cart))
     setToastMessage(`${product.name} ditambahkan ke keranjang!`)
     setTimeout(() => setToastMessage(null), 3000)
   }
@@ -452,36 +643,16 @@ function ProductDetailPage() {
       <div className="pdp-right">
         <div className="pdp-tryon-placeholder">
           {/* Studio Mode Selector */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', width: '100%' }}>
+          <div className="pdp-mode-selector">
             <button
               onClick={() => setPreviewMode('3d')}
-              style={{
-                flex: 1,
-                padding: '8px',
-                borderRadius: '8px',
-                border: '1px solid rgba(229,219,208,0.2)',
-                background: previewMode === '3d' ? '#C5A880' : 'rgba(28,24,22,0.8)',
-                color: previewMode === '3d' ? '#1C1816' : '#FAF8F5',
-                fontSize: '0.78rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
+              className={`pdp-mode-btn ${previewMode === '3d' ? 'active' : ''}`}
             >
               Preview Model 3D
             </button>
             <button
               onClick={() => setPreviewMode('camera')}
-              style={{
-                flex: 1,
-                padding: '8px',
-                borderRadius: '8px',
-                border: '1px solid rgba(229,219,208,0.2)',
-                background: previewMode === 'camera' ? '#C5A880' : 'rgba(28,24,22,0.8)',
-                color: previewMode === 'camera' ? '#1C1816' : '#FAF8F5',
-                fontSize: '0.78rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
+              className={`pdp-mode-btn ${previewMode === 'camera' ? 'active' : ''}`}
             >
               Live AR Camera
             </button>
@@ -496,7 +667,31 @@ function ProductDetailPage() {
           {previewMode === 'camera' && (
             <>
               <div className="pdp-ar-preview-stage">
+                {/* Status indicators */}
                 <span className="pdp-ar-pulse-dot" style={{ backgroundColor: cameraActive ? '#22C55E' : '#C5A880' }} />
+
+                {cameraActive && (
+                  <div className={`pdp-face-indicator ${faceDetected ? 'detected' : 'searching'}`}>
+                    {faceDetected ? (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Wajah Terdeteksi</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M8 15s1.5 2 4 2 4-2 4-2" />
+                          <line x1="9" y1="9" x2="9.01" y2="9" />
+                          <line x1="15" y1="9" x2="15.01" y2="9" />
+                        </svg>
+                        <span>Mencari Wajah...</span>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <video
                   ref={videoRef}
@@ -521,8 +716,10 @@ function ProductDetailPage() {
                       left: 0,
                       width: '100%',
                       height: '100%',
+                      objectFit: 'cover',
                       zIndex: 15,
-                      pointerEvents: 'none'
+                      pointerEvents: 'none',
+                      transform: 'scaleX(-1)'
                     }}
                   />
                 )}
@@ -553,9 +750,22 @@ function ProductDetailPage() {
                 {cameraError ? cameraError : <>Uji kesesuaian bingkai <b>{product.name}</b> di wajah Anda secara <i>real-time</i>.</>}
               </p>
 
-              <button className="pdp-tryon-cta" onClick={toggleCamera} disabled={loadingARScripts}>
-                {cameraActive ? 'Matikan Kamera' : loadingARScripts ? 'Memuat...' : 'Aktifkan Kamera'}
-              </button>
+              {/* Camera action buttons */}
+              <div className="pdp-camera-actions">
+                <button className="pdp-tryon-cta" onClick={toggleCamera} disabled={loadingARScripts}>
+                  {cameraActive ? 'Matikan Kamera' : loadingARScripts ? 'Memuat...' : 'Aktifkan Kamera'}
+                </button>
+
+                {cameraActive && (
+                  <button className="pdp-capture-btn" onClick={handleCapture} title="Ambil Screenshot">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    Capture
+                  </button>
+                )}
+              </div>
             </>
           )}
 
