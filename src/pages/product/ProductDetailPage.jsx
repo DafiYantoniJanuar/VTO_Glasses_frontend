@@ -47,7 +47,6 @@ const MODEL_CONFIGS = {
 const formatPrice = (p) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p)
 
-// Temporal smoothing helper — lerp for scalars
 const lerp = (prev, next, alpha) => prev + (next - prev) * alpha
 
 function StarRating({ rating, total }) {
@@ -72,7 +71,7 @@ function ProductDetailPage() {
   const { user } = useAuth()
   const [isFavorite, setIsFavorite] = useState(false)
   const [activeTab, setActiveTab] = useState('description')
-  const [previewMode, setPreviewMode] = useState('3d') // '3d' or 'camera'
+  const [previewMode, setPreviewMode] = useState('3d')
   const [toastMessage, setToastMessage] = useState(null)
 
   // Camera State
@@ -92,114 +91,112 @@ function ProductDetailPage() {
   const [showSharePanel, setShowSharePanel] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
 
-  // ─── TRY-ON HISTORY LOGGING LOGIC ───
+  // Try-on history ref
   const historyLoggedRef = useRef(false)
   const logTryOnHistoryRef = useRef(null)
 
   const product = DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1]
 
-  // ─── FAVORITES LOGIC (API + localStorage sync) ───
-  const isLoggedIn = user && !user.isGuest && user.token
-
-  // Keep latest logging function in ref to avoid re-triggering camera useEffect
+  // Check initial favorite status
   useEffect(() => {
-    logTryOnHistoryRef.current = async () => {
-      if (isLoggedIn) {
-        try {
-          await fetch(`${API_BASE_URL}/history`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${user.token}`,
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({ product_id: product.id })
-          })
-        } catch (e) {
-          console.error('Failed to log history on backend:', e)
-        }
+    const checkFavoriteStatus = async () => {
+      if (user?.isGuest) {
+        const localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+        setIsFavorite(localFavs.some(item => String(item.id) === String(product.id)))
+        return
       }
-
-      // Always store to local storage for guests and offline cache
-      let localHist = JSON.parse(localStorage.getItem('vto_history') || '[]')
-      localHist = localHist.filter(h => h.productId !== product.id)
-      localHist.unshift({
-        id: Date.now(),
-        productId: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        dateLabel: 'Baru saja'
-      })
-      if (localHist.length > 20) {
-        localHist = localHist.slice(0, 20)
-      }
-      localStorage.setItem('vto_history', JSON.stringify(localHist))
-    }
-  }, [product, isLoggedIn, user?.token])
-
-  useEffect(() => {
-    const checkFavorite = async () => {
-      if (isLoggedIn) {
-        try {
-          const res = await fetch(`${API_BASE_URL}/favorites`, {
-            headers: { 'Authorization': `Bearer ${user.token}`, 'Accept': 'application/json' }
-          })
-          if (res.ok) {
-            const json = await res.json()
-            const favIds = (json.data || []).map(p => p.id)
-            setIsFavorite(favIds.includes(product.id))
-            return
-          }
-        } catch { /* fallback to localStorage */ }
-      }
-      // Guest or API failed: check localStorage
-      const localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
-      setIsFavorite(localFavs.some(p => p.id === product.id))
-    }
-    checkFavorite()
-  }, [product.id, isLoggedIn, user?.token])
-
-  const handleToggleFav = async () => {
-    if (isLoggedIn) {
-      // Call backend API
       try {
-        const res = await fetch(`${API_BASE_URL}/favorites/toggle`, {
+        const token = localStorage.getItem('auth_token')
+        if (!token) return
+        const res = await fetch(`${API_BASE_URL}/favorites`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const favList = data.data || []
+          setIsFavorite(favList.some(item => String(item.product_id) === String(product.id)))
+        }
+      } catch {
+        const localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+        setIsFavorite(localFavs.some(item => String(item.id) === String(product.id)))
+      }
+    }
+    checkFavoriteStatus()
+  }, [product.id, user])
+
+  // Log Try-On History Function
+  const logTryOnHistory = useCallback(async () => {
+    if (historyLoggedRef.current) return
+    historyLoggedRef.current = true
+
+    const historyItem = {
+      id: Date.now(),
+      productId: product.id,
+      productName: product.name,
+      productShape: product.shape,
+      productColor: product.color,
+      productPrice: product.price,
+      productImage: product.image || showcaseImg,
+      triedAt: new Date().toISOString()
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      if (token && !user?.isGuest) {
+        await fetch(`${API_BASE_URL}/try-on-history`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.token}`,
-            'Accept': 'application/json'
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ product_id: product.id })
         })
-        if (res.ok) {
-          const json = await res.json()
-          setIsFavorite(json.is_favorited)
-          setToastMessage(json.is_favorited ? 'Ditambahkan ke favorit.' : 'Dihapus dari favorit.')
-        }
-      } catch {
-        setToastMessage('Gagal mengubah favorit.')
       }
-    } else {
-      // Guest: localStorage only
-      let localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
-      const exists = localFavs.some(p => p.id === product.id)
-      if (exists) {
-        localFavs = localFavs.filter(p => p.id !== product.id)
+    } catch { }
+
+    try {
+      const existingHistory = JSON.parse(localStorage.getItem('vto_tryon_history') || '[]')
+      const updatedHistory = [historyItem, ...existingHistory.filter(h => String(h.productId) !== String(product.id))]
+      localStorage.setItem('vto_tryon_history', JSON.stringify(updatedHistory.slice(0, 20)))
+    } catch { }
+  }, [product, user])
+
+  logTryOnHistoryRef.current = logTryOnHistory
+
+  const handleToggleFav = async () => {
+    if (user?.isGuest) {
+      const localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
+      let newFavs
+      if (isFavorite) {
+        newFavs = localFavs.filter(item => String(item.id) !== String(product.id))
         setIsFavorite(false)
-        setToastMessage('Dihapus dari favorit.')
       } else {
-        localFavs = [...localFavs, product]
+        newFavs = [...localFavs, product]
         setIsFavorite(true)
-        setToastMessage('Ditambahkan ke favorit.')
       }
-      localStorage.setItem('vto_favorites', JSON.stringify(localFavs))
+      localStorage.setItem('vto_favorites', JSON.stringify(newFavs))
+      return
     }
-    setTimeout(() => setToastMessage(null), 3000)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      const res = await fetch(`${API_BASE_URL}/favorites/toggle`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ product_id: product.id })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setIsFavorite(data.is_favorite)
+      }
+    } catch {
+      setIsFavorite(!isFavorite)
+    }
   }
 
-  // ─── CAMERA TOGGLE ───
   const toggleCamera = async () => {
     if (cameraActive) {
       if (cameraUtilsRef.current) {
@@ -217,7 +214,6 @@ function ProductDetailPage() {
       }
       setCameraActive(false)
       setFaceDetected(false)
-      historyLoggedRef.current = false
     } else {
       setCameraError(null)
       setLoadingARScripts(true)
@@ -233,16 +229,17 @@ function ProductDetailPage() {
           videoRef.current.srcObject = stream
         }
         setCameraActive(true)
+        historyLoggedRef.current = false
       } catch (err) {
         console.error(err)
-        setCameraError('Kamera tidak ditemukan, izin ditolak, atau library gagal dimuat.')
+        setCameraError('Kamera tidak ditemukan atau izin ditolak.')
         setCameraActive(false)
         setLoadingARScripts(false)
       }
     }
   }
 
-  // Cleanup on unmount
+  // Cleanup camera on unmount
   useEffect(() => {
     const videoNode = videoRef.current
     return () => {
@@ -259,7 +256,7 @@ function ProductDetailPage() {
     }
   }, [])
 
-  // ─── MEDIAPIPE + THREE.JS AR OVERLAY (REWRITTEN WITH ORTHOGRAPHIC) ───
+  // ─── MEDIAPIPE + THREE.JS AR OVERLAY ───
   useEffect(() => {
     if (!cameraActive || !videoRef.current || !arCanvasRef.current) return
 
@@ -269,24 +266,18 @@ function ProductDetailPage() {
     let VIDEO_W = 640
     let VIDEO_H = 480
 
-    // Set canvas internal resolution to match video
     canvas.width = VIDEO_W
     canvas.height = VIDEO_H
 
     const scene = new THREE.Scene()
-
-    // Orthographic Camera mapping directly to pixel space
-    // Center of the canvas is (0, 0).
     const camera = new THREE.OrthographicCamera(-VIDEO_W / 2, VIDEO_W / 2, VIDEO_H / 2, -VIDEO_H / 2, 0.1, 2000)
     camera.position.set(0, 0, 1000)
     camera.lookAt(0, 0, 0)
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true })
-
     renderer.setSize(VIDEO_W, VIDEO_H, false)
     renderer.setPixelRatio(1)
 
-    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 2.2)
     scene.add(ambientLight)
 
@@ -297,14 +288,12 @@ function ProductDetailPage() {
     const glassesGroup = new THREE.Group()
     scene.add(glassesGroup)
 
-    // Load 3D model
     let glassesModel = null
     const loader = new GLTFLoader()
     loader.load(product.modelUrl, (gltf) => {
       if (!active) return
       glassesModel = gltf.scene
 
-      // 1. Compute bounding box BEFORE any rotation
       const box = new THREE.Box3()
       let hasMesh = false
       glassesModel.traverse((child) => {
@@ -321,41 +310,28 @@ function ProductDetailPage() {
       const center = box.getCenter(new THREE.Vector3())
       const size = box.getSize(new THREE.Vector3())
 
-      // Determine the precise NOSE BRIDGE location to use as the pivot point
       let pivotX = center.x
       let pivotY = center.y
       let pivotZ = center.z
 
       const config = MODEL_CONFIGS[product.modelUrl] || { rotationY: 0 }
-      
-      // Glasses models have temples that push the geometric center far back.
-      // We must pivot exactly at the front frame (nose bridge) to prevent drifting when turning the head!
       if (config.rotationY === 0) {
-        // Faces +Z. Front is max Z
-        pivotZ = box.max.z - (size.z * 0.1) // 10% behind the absolute front
+        pivotZ = box.max.z - (size.z * 0.1)
       } else if (config.rotationY === Math.PI / 2) {
-        // Faces +X. Front is max X
         pivotX = box.max.x - (size.x * 0.1)
       } else if (config.rotationY === -Math.PI / 2) {
-        // Faces -X. Front is min X
         pivotX = box.min.x + (size.x * 0.1)
       }
 
-      // 2. Center the geometry to its NOSE BRIDGE pivot
       glassesModel.position.set(-pivotX, -pivotY, -pivotZ)
 
-
-      // 3. Create a wrapper to handle model-specific rotation
       const wrapper = new THREE.Group()
       wrapper.add(glassesModel)
 
-      // Apply model-specific rotation to ensure it faces forward (along +Z)
       if (config.rotationY) {
         wrapper.rotation.y = config.rotationY
       }
 
-      // Normalize scale so the main width dimension = 1.0 unit
-      // Since it could be initially sideways, we use the maximum horizontal dimension
       const widthDim = Math.max(size.x, size.z)
       if (widthDim > 0) {
         const s = 1.0 / widthDim
@@ -366,9 +342,10 @@ function ProductDetailPage() {
       glassesGroup.visible = false
     })
 
-    // ─── Temporal smoothing state ───
     const smoothState = {
-      posX: null, posY: null, posZ: null,
+      posX: null,
+      posY: null,
+      posZ: null,
       scaleVal: null,
       rotQuat: null,
       initialized: false
@@ -378,7 +355,6 @@ function ProductDetailPage() {
     const SMOOTH_SCALE = 0.75
     const SMOOTH_ROT = 0.75
 
-    // FaceMesh setup
     const faceMesh = new window.FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     })
@@ -392,14 +368,11 @@ function ProductDetailPage() {
 
     faceMesh.onResults((results) => {
       if (!active) return
-
       const video = videoRef.current
       if (!video) return
 
-      // Synchronize canvas resolution with actual video resolution
       const vw = video.videoWidth || 640
       const vh = video.videoHeight || 480
-
       if (canvas.width !== vw || canvas.height !== vh) {
         VIDEO_W = vw
         VIDEO_H = vh
@@ -415,9 +388,7 @@ function ProductDetailPage() {
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0]
-
-        // Key landmarks for alignment
-        const noseBridge = landmarks[6] // Center of nose bridge (exactly between the eyes)
+        const noseBridge = landmarks[6]
         const leftEyeOuter = landmarks[33]
         const rightEyeOuter = landmarks[263]
         const forehead = landmarks[10]
@@ -429,19 +400,15 @@ function ProductDetailPage() {
           setFaceDetected(true)
           glassesGroup.visible = true
 
-          if (!historyLoggedRef.current) {
-            historyLoggedRef.current = true
-            if (logTryOnHistoryRef.current) {
-              logTryOnHistoryRef.current()
-            }
+          if (logTryOnHistoryRef.current) {
+            logTryOnHistoryRef.current()
           }
 
-          // Helper to map normalized landmark to orthographic 3D pixel coordinate
           const get3DPoint = (lm) => {
             return new THREE.Vector3(
               (lm.x - 0.5) * VIDEO_W,
               (0.5 - lm.y) * VIDEO_H,
-              -lm.z * VIDEO_W // depth approximation scaled to match X/Y
+              -lm.z * VIDEO_W
             )
           }
 
@@ -452,25 +419,19 @@ function ProductDetailPage() {
           const pForehead = get3DPoint(forehead)
           const pChin = get3DPoint(chin)
 
-          // 1. Position: anchored directly at eye level (midpoint between eyes)
           const pEyeMidpoint = new THREE.Vector3().addVectors(pRightEye, pLeftEye).multiplyScalar(0.5)
-          // Use direct coordinates (do not invert!)
           const rawPosX = pEyeMidpoint.x
           const rawPosY = pEyeMidpoint.y
           const rawPosZ = pEyeMidpoint.z
 
-          // 2. Sizing: distance between left and right temple landmarks in pixel space
           const faceWidth = pLeftTemple.distanceTo(pRightTemple)
           const config = MODEL_CONFIGS[product.modelUrl] || { scaleMultiplier: 1.15, yOffset: -0.04, zOffset: 0.05 }
           const rawScale = faceWidth * (config.scaleMultiplier || 1.15)
-          
-          // 3. Rotation: build face coordinate system
+
           let vX = new THREE.Vector3().subVectors(pLeftEye, pRightEye).normalize()
-          // GUARANTEE vX points RIGHT (+X) so glasses are never rendered backwards!
           if (vX.x < 0) vX.negate()
 
           let vYRaw = new THREE.Vector3().subVectors(pForehead, pChin).normalize()
-          // GUARANTEE vYRaw points UP (+Y)
           if (vYRaw.y < 0) vYRaw.negate()
 
           const vZ = new THREE.Vector3().crossVectors(vX, vYRaw).normalize()
@@ -479,7 +440,6 @@ function ProductDetailPage() {
           const rotMatrix = new THREE.Matrix4().makeBasis(vX, vY, vZ)
           const rawQuat = new THREE.Quaternion().setFromRotationMatrix(rotMatrix)
 
-          // ─── TEMPORAL SMOOTHING ───
           if (!smoothState.initialized) {
             smoothState.posX = rawPosX
             smoothState.posY = rawPosY
@@ -495,14 +455,10 @@ function ProductDetailPage() {
             smoothState.rotQuat.slerp(rawQuat, SMOOTH_ROT)
           }
 
-          // Apply smoothed transform
           glassesGroup.position.set(smoothState.posX, smoothState.posY, smoothState.posZ)
           glassesGroup.scale.setScalar(smoothState.scaleVal)
           glassesGroup.quaternion.copy(smoothState.rotQuat)
 
-          // Apply offset in face-local space:
-          // - Shift down slightly so frame sits on nose bridge (y direction)
-          // - Shift forward slightly to avoid lens clipping (z direction)
           const verticalOffset = (config.yOffset ?? -0.04) * smoothState.scaleVal
           const depthOffset = (config.zOffset ?? 0.05) * smoothState.scaleVal
           const yOffsetVec = vY.clone().multiplyScalar(verticalOffset)
@@ -542,44 +498,36 @@ function ProductDetailPage() {
     }
   }, [cameraActive, product.modelUrl])
 
-  // ─── CAPTURE SCREENSHOT → opens modal preview ───
+  // ─── CAPTURE SCREENSHOT ───
   const handleCapture = useCallback(() => {
     if (!videoRef.current || !arCanvasRef.current) return
 
     const video = videoRef.current
     const arCanvas = arCanvasRef.current
 
-    // Create offscreen canvas with video dimensions
     const captureCanvas = document.createElement('canvas')
     captureCanvas.width = 640
     captureCanvas.height = 480
     const ctx = captureCanvas.getContext('2d')
 
-    // Draw both video and overlay inside the mirrored matrix so they align perfectly
     ctx.save()
     ctx.translate(captureCanvas.width, 0)
     ctx.scale(-1, 1)
 
-    // Draw mirrored video frame
     ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height)
-
-    // Draw mirrored Three.js AR overlay
     ctx.drawImage(arCanvas, 0, 0, captureCanvas.width, captureCanvas.height)
     ctx.restore()
 
-    // Add watermark
     ctx.fillStyle = 'rgba(255, 255, 255, 0.75)'
     ctx.font = 'bold 13px Outfit, sans-serif'
     ctx.fillText(`VTO Glasses — ${product.name}`, 16, captureCanvas.height - 16)
 
-    // Store dataURL → open modal (no direct download)
     const dataUrl = captureCanvas.toDataURL('image/png')
     setCapturedImageUrl(dataUrl)
     setShowCaptureModal(true)
     setShowSharePanel(false)
   }, [product.name])
 
-  // ─── DOWNLOAD dari modal ───
   const handleDownload = useCallback(() => {
     if (!capturedImageUrl) return
     const link = document.createElement('a')
@@ -590,14 +538,11 @@ function ProductDetailPage() {
     setTimeout(() => setToastMessage(null), 3000)
   }, [capturedImageUrl, product.name])
 
-  // ─── SHARE hasil try-on ───
   const handleShare = useCallback(async () => {
     if (!capturedImageUrl) return
 
-    // Coba Web Share API (native, terutama di mobile)
     if (navigator.share) {
       try {
-        // Convert dataURL → Blob → File untuk di-share sebagai file gambar
         const res = await fetch(capturedImageUrl)
         const blob = await res.blob()
         const file = new File([blob], `VTO_${product.name}.png`, { type: 'image/png' })
@@ -610,7 +555,6 @@ function ProductDetailPage() {
           })
           return
         } else {
-          // Share tanpa file (hanya teks)
           await navigator.share({
             title: `Coba ${product.name} di VTO Glasses`,
             text: `Lihat bagaimana saya tampil dengan ${product.name}! Virtual Try-On via VTO Glasses.`
@@ -618,19 +562,15 @@ function ProductDetailPage() {
           return
         }
       } catch (err) {
-        // User cancel atau gagal → tampilkan panel manual
         if (err.name !== 'AbortError') {
           setShowSharePanel(true)
         }
         return
       }
     }
-
-    // Fallback: tampilkan share panel manual
     setShowSharePanel(prev => !prev)
   }, [capturedImageUrl, product.name])
 
-  // ─── COPY image ke clipboard ───
   const handleCopyImage = useCallback(async () => {
     if (!capturedImageUrl) return
     try {
@@ -642,18 +582,16 @@ function ProductDetailPage() {
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2500)
     } catch {
-      // Fallback: copy teks promo
       try {
         await navigator.clipboard.writeText(
           `Coba ${product.name} di VTO Glasses! Virtual Try-On kacamata berbasis AR.`
         )
         setCopySuccess(true)
         setTimeout(() => setCopySuccess(false), 2500)
-      } catch { /* nothing */ }
+      } catch { }
     }
   }, [capturedImageUrl, product.name])
 
-  // ─── SHARE ke platform spesifik ───
   const shareToWhatsApp = useCallback(() => {
     const text = encodeURIComponent(`Coba ${product.name} di VTO Glasses! Fitur Virtual Try-On kacamata berbasis AR. Download dulu fotonya di bawah ya 🕶️`)
     window.open(`https://wa.me/?text=${text}`, '_blank')
@@ -674,7 +612,6 @@ function ProductDetailPage() {
     setShowSharePanel(false)
     setCopySuccess(false)
   }, [])
-
 
   const handleAddToCart = () => {
     if (user?.isGuest) {
@@ -709,7 +646,6 @@ function ProductDetailPage() {
       {showCaptureModal && capturedImageUrl && (
         <div className="capture-modal-overlay" onClick={closeCaptureModal}>
           <div className="capture-modal" onClick={e => e.stopPropagation()}>
-            {/* Header */}
             <div className="capture-modal-header">
               <div className="capture-modal-title">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C5A880" strokeWidth="2">
@@ -726,7 +662,6 @@ function ProductDetailPage() {
               </button>
             </div>
 
-            {/* Preview Image */}
             <div className="capture-modal-img-wrap">
               <img src={capturedImageUrl} alt={`Try-On ${product.name}`} className="capture-modal-img" />
               <div className="capture-modal-product-tag">
@@ -734,7 +669,6 @@ function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="capture-modal-actions">
               <button className="capture-action-btn download" onClick={handleDownload}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -779,7 +713,6 @@ function ProductDetailPage() {
               </button>
             </div>
 
-            {/* Share Panel (fallback / tambahan) */}
             {showSharePanel && (
               <div className="capture-share-panel">
                 <p className="capture-share-label">Bagikan ke:</p>
@@ -810,6 +743,7 @@ function ProductDetailPage() {
           </div>
         </div>
       )}
+
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{
@@ -905,9 +839,31 @@ function ProductDetailPage() {
           )}
 
           {/* Action Buttons */}
-          <div className="pdp-actions">
-            <button className="pdp-btn-cart" onClick={handleAddToCart} style={{ width: '100%' }}>
+          <div className="pdp-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <button className="pdp-btn-cart" onClick={handleAddToCart} style={{ flex: 1 }}>
               + Tambah ke Keranjang
+            </button>
+            <button 
+              className="pdp-btn-cart" 
+              onClick={() => navigate(`/compare?left=${product.id}`)}
+              style={{
+                flex: 1,
+                backgroundColor: '#FAF8F5',
+                color: '#1C1816',
+                border: '1.5px solid #C5A880',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '14px 18px'
+              }}
+              title="Bandingkan dengan model kacamata lain (Split Screen AR)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C5A880" strokeWidth="2.5">
+                <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
+                <line x1="12" y1="3" x2="12" y2="21"></line>
+              </svg>
+              Bandingkan
             </button>
           </div>
         </div>

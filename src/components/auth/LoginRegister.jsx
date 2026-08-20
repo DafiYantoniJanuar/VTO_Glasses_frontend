@@ -148,6 +148,7 @@ function LoginRegister() {
                 modelScale={2.8}
                 showControls={false}
                 showPedestal={false}
+                autoRotate={true}
                 autoRotateSpeed={1.0}
               />
               <div className="vto-3d-badge">Showroom Premium • 360° Interactive</div>

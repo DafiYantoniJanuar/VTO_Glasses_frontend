@@ -9,6 +9,7 @@ import FavoritesPage from './pages/favorites/FavoritesPage'
 import TryOnHistoryPage from './pages/history/TryOnHistoryPage'
 import CheckoutPage from './pages/checkout/CheckoutPage'
 import DashboardHome from './pages/dashboard/DashboardHome'
+import ComparePage from './pages/compare/ComparePage'
 import AdminCatalogPage from './pages/admin/AdminCatalogPage'
 import AdminOrdersPage from './pages/admin/AdminOrdersPage'
 import './App.css'
@@ -26,6 +27,7 @@ function App() {
             <Route path="/dashboard" element={<HomePage />} />
             <Route path="/catalog" element={<CatalogPage />} />
             <Route path="/catalog/:id" element={<ProductDetailPage />} />
+            <Route path="/compare" element={<ComparePage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/history" element={<TryOnHistoryPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
