@@ -76,6 +76,12 @@ function ProductDetailPage() {
   const [loadingARScripts, setLoadingARScripts] = useState(false)
   const [faceDetected, setFaceDetected] = useState(false)
 
+  // Capture & Share State
+  const [capturedImageUrl, setCapturedImageUrl] = useState(null)
+  const [showCaptureModal, setShowCaptureModal] = useState(false)
+  const [showSharePanel, setShowSharePanel] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
+
   // ─── TRY-ON HISTORY LOGGING LOGIC ───
   const historyLoggedRef = useRef(false)
   const logTryOnHistoryRef = useRef(null)
@@ -282,7 +288,8 @@ function ProductDetailPage() {
     camera.position.set(0, 0, 1000)
     camera.lookAt(0, 0, 0)
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true })
+
     renderer.setSize(VIDEO_W, VIDEO_H, false)
     renderer.setPixelRatio(1)
 
@@ -483,7 +490,7 @@ function ProductDetailPage() {
     }
   }, [cameraActive, product.modelUrl])
 
-  // ─── CAPTURE SCREENSHOT ───
+  // ─── CAPTURE SCREENSHOT → opens modal preview ───
   const handleCapture = useCallback(() => {
     if (!videoRef.current || !arCanvasRef.current) return
 
@@ -500,28 +507,121 @@ function ProductDetailPage() {
     ctx.save()
     ctx.translate(captureCanvas.width, 0)
     ctx.scale(-1, 1)
-    
+
     // Draw mirrored video frame
     ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height)
-    
+
     // Draw mirrored Three.js AR overlay
     ctx.drawImage(arCanvas, 0, 0, captureCanvas.width, captureCanvas.height)
     ctx.restore()
 
     // Add watermark
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
-    ctx.font = '14px Outfit, sans-serif'
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)'
+    ctx.font = 'bold 13px Outfit, sans-serif'
     ctx.fillText(`VTO Glasses — ${product.name}`, 16, captureCanvas.height - 16)
 
-    // Trigger download
+    // Store dataURL → open modal (no direct download)
+    const dataUrl = captureCanvas.toDataURL('image/png')
+    setCapturedImageUrl(dataUrl)
+    setShowCaptureModal(true)
+    setShowSharePanel(false)
+  }, [product.name])
+
+  // ─── DOWNLOAD dari modal ───
+  const handleDownload = useCallback(() => {
+    if (!capturedImageUrl) return
     const link = document.createElement('a')
     link.download = `VTO_TryOn_${product.name.replace(/\s+/g, '_')}_${Date.now()}.png`
-    link.href = captureCanvas.toDataURL('image/png')
+    link.href = capturedImageUrl
     link.click()
-
     setToastMessage('Screenshot berhasil disimpan!')
     setTimeout(() => setToastMessage(null), 3000)
+  }, [capturedImageUrl, product.name])
+
+  // ─── SHARE hasil try-on ───
+  const handleShare = useCallback(async () => {
+    if (!capturedImageUrl) return
+
+    // Coba Web Share API (native, terutama di mobile)
+    if (navigator.share) {
+      try {
+        // Convert dataURL → Blob → File untuk di-share sebagai file gambar
+        const res = await fetch(capturedImageUrl)
+        const blob = await res.blob()
+        const file = new File([blob], `VTO_${product.name}.png`, { type: 'image/png' })
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: `Coba ${product.name} di VTO Glasses`,
+            text: `Lihat bagaimana saya tampil dengan ${product.name}! Virtual Try-On via VTO Glasses.`,
+            files: [file]
+          })
+          return
+        } else {
+          // Share tanpa file (hanya teks)
+          await navigator.share({
+            title: `Coba ${product.name} di VTO Glasses`,
+            text: `Lihat bagaimana saya tampil dengan ${product.name}! Virtual Try-On via VTO Glasses.`
+          })
+          return
+        }
+      } catch (err) {
+        // User cancel atau gagal → tampilkan panel manual
+        if (err.name !== 'AbortError') {
+          setShowSharePanel(true)
+        }
+        return
+      }
+    }
+
+    // Fallback: tampilkan share panel manual
+    setShowSharePanel(prev => !prev)
+  }, [capturedImageUrl, product.name])
+
+  // ─── COPY image ke clipboard ───
+  const handleCopyImage = useCallback(async () => {
+    if (!capturedImageUrl) return
+    try {
+      const res = await fetch(capturedImageUrl)
+      const blob = await res.blob()
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ])
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2500)
+    } catch {
+      // Fallback: copy teks promo
+      try {
+        await navigator.clipboard.writeText(
+          `Coba ${product.name} di VTO Glasses! Virtual Try-On kacamata berbasis AR.`
+        )
+        setCopySuccess(true)
+        setTimeout(() => setCopySuccess(false), 2500)
+      } catch { /* nothing */ }
+    }
+  }, [capturedImageUrl, product.name])
+
+  // ─── SHARE ke platform spesifik ───
+  const shareToWhatsApp = useCallback(() => {
+    const text = encodeURIComponent(`Coba ${product.name} di VTO Glasses! Fitur Virtual Try-On kacamata berbasis AR. Download dulu fotonya di bawah ya 🕶️`)
+    window.open(`https://wa.me/?text=${text}`, '_blank')
   }, [product.name])
+
+  const shareToTwitter = useCallback(() => {
+    const text = encodeURIComponent(`Baru coba ${product.name} secara virtual! 🕶️ #VTOGlasses #VirtualTryOn #Kacamata`)
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank')
+  }, [product.name])
+
+  const shareToFacebook = useCallback(() => {
+    const pageUrl = encodeURIComponent(window.location.href)
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`, '_blank')
+  }, [])
+
+  const closeCaptureModal = useCallback(() => {
+    setShowCaptureModal(false)
+    setShowSharePanel(false)
+    setCopySuccess(false)
+  }, [])
 
 
   const handleAddToCart = () => {
@@ -553,6 +653,111 @@ function ProductDetailPage() {
 
   return (
     <div className="pdp-wrapper">
+      {/* ─── CAPTURE MODAL ─── */}
+      {showCaptureModal && capturedImageUrl && (
+        <div className="capture-modal-overlay" onClick={closeCaptureModal}>
+          <div className="capture-modal" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="capture-modal-header">
+              <div className="capture-modal-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C5A880" strokeWidth="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span>Hasil Foto Try-On</span>
+              </div>
+              <button className="capture-modal-close" onClick={closeCaptureModal} title="Tutup">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Preview Image */}
+            <div className="capture-modal-img-wrap">
+              <img src={capturedImageUrl} alt={`Try-On ${product.name}`} className="capture-modal-img" />
+              <div className="capture-modal-product-tag">
+                <span>🕶️ {product.name}</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="capture-modal-actions">
+              <button className="capture-action-btn download" onClick={handleDownload}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download
+              </button>
+
+              <button className="capture-action-btn share" onClick={handleShare}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                Share
+              </button>
+
+              <button
+                className={`capture-action-btn copy ${copySuccess ? 'success' : ''}`}
+                onClick={handleCopyImage}
+              >
+                {copySuccess ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Tersalin!
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Share Panel (fallback / tambahan) */}
+            {showSharePanel && (
+              <div className="capture-share-panel">
+                <p className="capture-share-label">Bagikan ke:</p>
+                <div className="capture-share-grid">
+                  <button className="share-platform-btn whatsapp" onClick={shareToWhatsApp}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+                    </svg>
+                    WhatsApp
+                  </button>
+
+                  <button className="share-platform-btn twitter" onClick={shareToTwitter}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    Twitter / X
+                  </button>
+
+                  <button className="share-platform-btn facebook" onClick={shareToFacebook}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Facebook
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{
@@ -594,7 +799,7 @@ function ProductDetailPage() {
         {/* Product Image Card */}
         <div className="pdp-image-card" style={{ padding: '16px' }}>
           <div className="pdp-img-main" style={{ height: '320px' }}>
-            <Glasses3DViewer modelUrl={product.modelUrl} height="320px" modelScale={4.8} />
+            <Glasses3DViewer modelUrl={product.modelUrl} height="320px" modelScale={2.2} />
           </div>
         </div>
 
@@ -685,7 +890,7 @@ function ProductDetailPage() {
 
           {/* Interactive 3D Preview Mode */}
           {previewMode === '3d' && (
-            <Glasses3DViewer modelUrl={product.modelUrl} showModelSelector={false} />
+            <Glasses3DViewer modelUrl={product.modelUrl} showModelSelector={false} autoRotate={true} autoRotateSpeed={1.0} />
           )}
 
           {/* Live Camera AR Mode */}
