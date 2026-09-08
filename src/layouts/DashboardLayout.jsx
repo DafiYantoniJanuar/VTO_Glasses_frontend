@@ -9,6 +9,13 @@ const HeartIcon = () => (
   </svg>
 )
 
+const CompareIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
+    <line x1="12" y1="3" x2="12" y2="21"></line>
+  </svg>
+)
+
 const HistoryIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="1 4 1 10 7 10"></polyline>
@@ -103,6 +110,9 @@ function DashboardLayout() {
           >
             Catalog
           </NavLink>
+          <NavLink to="/compare" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
+            Compare
+          </NavLink>
           <NavLink to="/checkout" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
             Sale
           </NavLink>
@@ -171,6 +181,8 @@ function DashboardLayout() {
             >
               <HeartIcon />
             </NavLink>
+
+
 
             <NavLink
               to="/history"

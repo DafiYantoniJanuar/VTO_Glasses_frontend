@@ -9,8 +9,9 @@ const MODEL_CACHE = new Map()
 function Glasses3DViewer({ 
   modelUrl = '/models/kacamata-1.glb',
   height = '300px',
-  modelScale = 4.2,
+  modelScale = 2.5,
   autoRotateSpeed = 1.0,
+  autoRotate = false,
   transparentBg = true
 }) {
   const mountRef = useRef(null)
@@ -43,7 +44,7 @@ function Glasses3DViewer({
     controls.enableZoom = true
     controls.minDistance = 2.0
     controls.maxDistance = 10
-    controls.autoRotate = true
+    controls.autoRotate = autoRotate
     controls.autoRotateSpeed = autoRotateSpeed
     controlsRef.current = controls
 
@@ -166,7 +167,7 @@ function Glasses3DViewer({
       }
       renderer.dispose()
     }
-  }, [modelUrl, modelScale, autoRotateSpeed])
+  }, [modelUrl, modelScale, autoRotate, autoRotateSpeed])
 
   function createProceduralFallback(group) {
     const frameMat = new THREE.MeshStandardMaterial({ color: 0xC5A880, metalness: 0.85, roughness: 0.2 })
