@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import showcaseImg from '../../assets/glasses_showcase.png'
 import heroImg from '../../assets/hero.png'
 import Glasses3DViewer from '../../components/3d/Glasses3DViewer'
+import ReviewSection from '../../components/review/ReviewSection'
 import './ProductDetailPage.css'
 
 const API_BASE_URL = 'http://localhost:8000/api'
@@ -39,9 +40,9 @@ const formatPrice = (p) =>
 // Temporal smoothing helper — lerp for scalars
 const lerp = (prev, next, alpha) => prev + (next - prev) * alpha
 
-function StarRating({ rating, total }) {
+function StarRating({ rating, total, onClick }) {
   return (
-    <div className="pdp-stars">
+    <div className="pdp-stars" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }} title="Lihat Ulasan Pembeli">
       {[1, 2, 3, 4, 5].map(i => (
         <svg key={i} width="16" height="16" viewBox="0 0 24 24"
           fill={i <= Math.round(rating) ? '#C5A880' : 'none'}
@@ -50,7 +51,7 @@ function StarRating({ rating, total }) {
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       ))}
-      <span className="pdp-rating-num">{rating} ({total} ulasan)</span>
+      <span className="pdp-rating-num">{Number(rating || 5.0).toFixed(1)} ({total} ulasan)</span>
     </div>
   )
 }
@@ -80,6 +81,22 @@ function ProductDetailPage() {
   const logTryOnHistoryRef = useRef(null)
 
   const product = DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1]
+
+  // Dynamic Rating State synced with ReviewSection
+  const [currentRating, setCurrentRating] = useState(product.rating || 4.7)
+  const [currentReviewsCount, setCurrentReviewsCount] = useState(product.reviews || 0)
+
+  useEffect(() => {
+    setCurrentRating(product.rating || 4.7)
+    setCurrentReviewsCount(product.reviews || 0)
+  }, [product])
+
+  const scrollToReviews = () => {
+    const el = document.getElementById('reviews-section')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   // ─── FAVORITES LOGIC (API + localStorage sync) ───
   const isLoggedIn = user && !user.isGuest && user.token
@@ -561,8 +578,10 @@ function ProductDetailPage() {
         </div>
       )}
 
-      {/* Left Column: Image Showcase & Details */}
-      <div className="pdp-left">
+      {/* Main Top Grid (Left Info & Right AR Showcase) */}
+      <div className="pdp-main-grid">
+        {/* Left Column: Image Showcase & Details */}
+        <div className="pdp-left">
         {/* Breadcrumb Navigation */}
         <nav className="pdp-breadcrumb">
           <span onClick={() => navigate('/catalog')} className="pdp-bc-link">Catalog</span>
@@ -596,11 +615,11 @@ function ProductDetailPage() {
             </button>
           </div>
 
-          <StarRating rating={product.rating} total={product.reviews} />
+          <StarRating rating={currentRating} total={currentReviewsCount} onClick={scrollToReviews} />
           <p className="pdp-price">{formatPrice(product.price)}</p>
           <p className="pdp-meta">{product.shape} • {product.color} • {product.category}</p>
 
-          {/* Description / Specifications Tabs */}
+          {/* Description / Specifications / Reviews Tabs */}
           <div className="pdp-tabs">
             <button
               className={`pdp-tab ${activeTab === 'description' ? 'active' : ''}`}
@@ -613,6 +632,12 @@ function ProductDetailPage() {
               onClick={() => setActiveTab('specs')}
             >
               Spesifikasi
+            </button>
+            <button
+              className="pdp-tab"
+              onClick={scrollToReviews}
+            >
+              Ulasan ({currentReviewsCount})
             </button>
           </div>
 
@@ -790,7 +815,21 @@ function ProductDetailPage() {
         </div>
       </div>
     </div>
-  )
+
+    {/* Full-width Product Reviews Section */}
+    <div className="pdp-reviews-container" id="reviews-section">
+      <div className="pdp-reviews-divider" />
+      <ReviewSection
+        productId={product.id}
+        productName={product.name}
+        onRatingUpdated={(avg, count) => {
+          setCurrentRating(avg)
+          setCurrentReviewsCount(count)
+        }}
+      />
+    </div>
+  </div>
+)
 }
 
 export default ProductDetailPage

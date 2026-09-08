@@ -25,7 +25,21 @@ export const AuthProvider = ({ children }) => {
               'Accept': 'application/json'
             }
           })
-          if (!response.ok) {
+          if (response.ok) {
+            const userData = await response.json()
+            if (userData && userData.id) {
+              const updatedSession = {
+                id: userData.id,
+                name: userData.name,
+                email: userData.email,
+                role: userData.role || user.role || 'user',
+                token: user.token,
+                isGuest: false
+              }
+              setUser(updatedSession)
+              localStorage.setItem('vto_user', JSON.stringify(updatedSession))
+            }
+          } else {
             // Token is invalid/expired, log out
             setUser(null)
             localStorage.removeItem('vto_user')
@@ -65,6 +79,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const sessionData = {
+        id: data.user.id,
         name: data.user.name,
         email: data.user.email,
         role: data.user.role || 'user',
@@ -136,6 +151,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const sessionData = {
+        id: data.user.id,
         name: data.user.name,
         email: data.user.email,
         role: data.user.role || 'user',
