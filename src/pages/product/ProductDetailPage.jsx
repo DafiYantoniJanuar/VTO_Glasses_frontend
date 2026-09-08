@@ -26,12 +26,23 @@ const loadScript = (src) => {
 }
 
 const DUMMY_PRODUCTS = {
-  1: { id: 1, name: 'The Cambridge', shape: 'Round', color: 'Tortoise', price: 2175000, category: 'Sunglasses', rating: 4.7, reviews: 89, image: showcaseImg, modelUrl: '/models/kacamata-1.glb', description: 'A timeless round silhouette crafted from premium Italian acetate. The Cambridge offers UV400 protection and ultra-lightweight comfort — perfect for everyday wear.' },
-  2: { id: 2, name: 'The Architect', shape: 'Square', color: 'Matte Black', price: 2460000, category: 'Sunglasses', rating: 4.6, reviews: 120, image: heroImg, modelUrl: '/models/glasses_2.glb', description: 'Timeless design meets modern engineering. The Architect features aerospace-grade titanium frames and polarized lenses for uncompromising style and clarity.' },
-  3: { id: 3, name: 'The Maverick', shape: 'Aviator', color: 'Gold', price: 2760000, category: 'Sunglasses', rating: 4.9, reviews: 210, image: showcaseImg, modelUrl: '/models/eyeglasses_specs.glb', description: 'Bold, iconic, unmistakable. The Maverick aviator features a classic teardrop silhouette with a lustrous gold frame and premium gradient lenses.' },
-  4: { id: 4, name: 'The Ghost', shape: 'Cat Eye', color: 'Clear Crystal', price: 2235000, category: 'Blue Light', rating: 4.5, reviews: 65, image: heroImg, modelUrl: '/models/glasses_4.glb', description: 'Barely-there sophistication. The Ghost features ultra-clear acetate for an almost invisible look that lets your face take center stage, with blue light blocking.' },
-  5: { id: 5, name: 'Classic Scholar', shape: 'Round', color: 'Dark Gray', price: 1890000, category: 'Reading Glasses', rating: 4.4, reviews: 44, image: showcaseImg, modelUrl: '/models/low_poly_eyeglass.glb', description: 'Refined and scholarly, the Classic Scholar combines a vintage-inspired round silhouette with modern lightweight materials for all-day reading comfort.' },
+  1: { id: 1, name: 'Classic Aviator', shape: 'Aviator', color: 'Gold/Green', price: 1599000, category: 'Anti-Radiasi', rating: 4.8, reviews: 124, image: heroImg, modelUrl: '/models/kacamata-1.glb', description: 'Timeless aviator design featuring premium metal frames and polarized lenses for ultimate UV protection.' },
+  2: { id: 2, name: 'Retro Square', shape: 'Square', color: 'Tortoise', price: 1250000, category: 'Anti-Radiasi', rating: 4.6, reviews: 89, image: showcaseImg, modelUrl: '/models/glasses_2.glb', description: 'Bold and intellectual. These retro square frames in classic tortoise shell are perfect for everyday wear.' },
+  3: { id: 3, name: 'Minimalist Round', shape: 'Round', color: 'Matte Black', price: 1850000, category: 'Minus', rating: 4.9, reviews: 210, image: heroImg, modelUrl: '/models/eyeglasses_specs.glb', description: 'Ultra-lightweight titanium frames in a modern round silhouette. Engineered for all-day comfort.' },
+  4: { id: 4, name: 'Geometric Edge', shape: 'Geometric', color: 'Rose Gold', price: 1450000, category: 'Anti-Radiasi', rating: 4.7, reviews: 156, image: showcaseImg, modelUrl: '/models/glasses_4.glb', description: 'Stand out with these unique geometric frames. Crafted from durable alloy with a stunning rose gold finish.' },
+  5: { id: 5, name: 'Vintage Browline', shape: 'Browline', color: 'Black/Silver', price: 1650000, category: 'Anti-Radiasi', rating: 4.5, reviews: 112, image: showcaseImg, modelUrl: '/models/low_poly_eyeglass.glb', description: 'A mid-century classic reborn. Features acetate upper frames and sleek metal lower rims.' },
   6: { id: 6, name: 'Aero Slim', shape: 'Aviator', color: 'Midnight Black', price: 2450000, category: 'Minus', rating: 4.8, reviews: 178, image: heroImg, modelUrl: '/models/titanium_frame_glass.glb', description: 'The ultimate in minimal elegance. Aero Slim\'s ultra-thin titanium frame practically disappears on your face, available with prescription lenses.' },
+}
+
+const MODEL_CONFIGS = {
+  '/models/kacamata-1.glb': { rotationY: 0, scaleMultiplier: 1.20, yOffset: -0.04, zOffset: -0.01 },
+  '/models/glasses_2.glb': { rotationY: 0, scaleMultiplier: 1.15, yOffset: -0.04, zOffset: -0.01 },
+  '/models/eyeglasses_specs.glb': { rotationY: -Math.PI / 2, scaleMultiplier: 1.10, yOffset: -0.02, zOffset: -0.01 },
+  '/models/glasses_4.glb': { rotationY: 0, scaleMultiplier: 1.15, yOffset: -0.04, zOffset: -0.01 },
+  '/models/low_poly_eyeglass.glb': { rotationY: Math.PI / 2, scaleMultiplier: 1.10, yOffset: -0.04, zOffset: -0.01 },
+  '/models/titanium_frame_glass.glb': { rotationY: 0, scaleMultiplier: 1.20, yOffset: -0.04, zOffset: -0.01 },
+  '/models/sunglasses_free.glb': { rotationY: 0, scaleMultiplier: 1.15, yOffset: -0.04, zOffset: -0.01 },
+  '/models/eyeglasses_subject_visualization.glb': { rotationY: -Math.PI / 2, scaleMultiplier: 1.10, yOffset: -0.04, zOffset: -0.01 }
 }
 
 const formatPrice = (p) =>
@@ -125,7 +136,7 @@ function ProductDetailPage() {
           console.error('Failed to log history on backend:', e)
         }
       }
-      
+
       // Always store to local storage for guests and offline cache
       let localHist = JSON.parse(localStorage.getItem('vto_history') || '[]')
       localHist = localHist.filter(h => h.productId !== product.id)
@@ -272,9 +283,8 @@ function ProductDetailPage() {
     let active = true
     const canvas = arCanvasRef.current
 
-    // Fixed resolution matching the video feed exactly
-    const VIDEO_W = 640
-    const VIDEO_H = 480
+    let VIDEO_W = 640
+    let VIDEO_H = 480
 
     // Set canvas internal resolution to match video
     canvas.width = VIDEO_W
@@ -282,9 +292,9 @@ function ProductDetailPage() {
 
     const scene = new THREE.Scene()
 
-    // Orthographic Camera mapping directly to 640x480 pixel space
+    // Orthographic Camera mapping directly to pixel space
     // Center of the canvas is (0, 0).
-    const camera = new THREE.OrthographicCamera(-320, 320, 240, -240, 0.1, 2000)
+    const camera = new THREE.OrthographicCamera(-VIDEO_W / 2, VIDEO_W / 2, VIDEO_H / 2, -VIDEO_H / 2, 0.1, 2000)
     camera.position.set(0, 0, 1000)
     camera.lookAt(0, 0, 0)
 
@@ -311,7 +321,7 @@ function ProductDetailPage() {
       if (!active) return
       glassesModel = gltf.scene
 
-      // Center the model pivot using mesh bounding box
+      // 1. Compute bounding box BEFORE any rotation
       const box = new THREE.Box3()
       let hasMesh = false
       glassesModel.traverse((child) => {
@@ -328,16 +338,48 @@ function ProductDetailPage() {
       const center = box.getCenter(new THREE.Vector3())
       const size = box.getSize(new THREE.Vector3())
 
-      // Center the model so its pivot is at its geometric center
-      glassesModel.position.set(-center.x, -center.y, -center.z)
+      // Determine the precise NOSE BRIDGE location to use as the pivot point
+      let pivotX = center.x
+      let pivotY = center.y
+      let pivotZ = center.z
 
-      // Normalize scale so the model width (X dimension) = 1.0 unit
-      if (size.x > 0) {
-        const s = 1.0 / size.x
-        glassesModel.scale.set(s, s, s)
+      const config = MODEL_CONFIGS[product.modelUrl] || { rotationY: 0 }
+      
+      // Glasses models have temples that push the geometric center far back.
+      // We must pivot exactly at the front frame (nose bridge) to prevent drifting when turning the head!
+      if (config.rotationY === 0) {
+        // Faces +Z. Front is max Z
+        pivotZ = box.max.z - (size.z * 0.1) // 10% behind the absolute front
+      } else if (config.rotationY === Math.PI / 2) {
+        // Faces +X. Front is max X
+        pivotX = box.max.x - (size.x * 0.1)
+      } else if (config.rotationY === -Math.PI / 2) {
+        // Faces -X. Front is min X
+        pivotX = box.min.x + (size.x * 0.1)
       }
 
-      glassesGroup.add(glassesModel)
+      // 2. Center the geometry to its NOSE BRIDGE pivot
+      glassesModel.position.set(-pivotX, -pivotY, -pivotZ)
+
+
+      // 3. Create a wrapper to handle model-specific rotation
+      const wrapper = new THREE.Group()
+      wrapper.add(glassesModel)
+
+      // Apply model-specific rotation to ensure it faces forward (along +Z)
+      if (config.rotationY) {
+        wrapper.rotation.y = config.rotationY
+      }
+
+      // Normalize scale so the main width dimension = 1.0 unit
+      // Since it could be initially sideways, we use the maximum horizontal dimension
+      const widthDim = Math.max(size.x, size.z)
+      if (widthDim > 0) {
+        const s = 1.0 / widthDim
+        wrapper.scale.set(s, s, s)
+      }
+
+      glassesGroup.add(wrapper)
       glassesGroup.visible = false
     })
 
@@ -349,9 +391,9 @@ function ProductDetailPage() {
       initialized: false
     }
 
-    const SMOOTH_POS = 0.50
-    const SMOOTH_SCALE = 0.40
-    const SMOOTH_ROT = 0.45
+    const SMOOTH_POS = 0.75
+    const SMOOTH_SCALE = 0.75
+    const SMOOTH_ROT = 0.75
 
     // FaceMesh setup
     const faceMesh = new window.FaceMesh({
@@ -367,6 +409,26 @@ function ProductDetailPage() {
 
     faceMesh.onResults((results) => {
       if (!active) return
+
+      const video = videoRef.current
+      if (!video) return
+
+      // Synchronize canvas resolution with actual video resolution
+      const vw = video.videoWidth || 640
+      const vh = video.videoHeight || 480
+
+      if (canvas.width !== vw || canvas.height !== vh) {
+        VIDEO_W = vw
+        VIDEO_H = vh
+        canvas.width = vw
+        canvas.height = vh
+        renderer.setSize(vw, vh, false)
+        camera.left = -vw / 2
+        camera.right = vw / 2
+        camera.top = vh / 2
+        camera.bottom = -vh / 2
+        camera.updateProjectionMatrix()
+      }
 
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0]
@@ -400,7 +462,6 @@ function ProductDetailPage() {
             )
           }
 
-          const pNoseBridge = get3DPoint(noseBridge)
           const pLeftTemple = get3DPoint(leftTemple)
           const pRightTemple = get3DPoint(rightTemple)
           const pLeftEye = get3DPoint(leftEyeOuter)
@@ -408,19 +469,27 @@ function ProductDetailPage() {
           const pForehead = get3DPoint(forehead)
           const pChin = get3DPoint(chin)
 
-          // 1. Position: anchored directly on the nose bridge
-          const rawPosX = pNoseBridge.x
-          const rawPosY = pNoseBridge.y
-          const rawPosZ = pNoseBridge.z
+          // 1. Position: anchored directly at eye level (midpoint between eyes)
+          const pEyeMidpoint = new THREE.Vector3().addVectors(pRightEye, pLeftEye).multiplyScalar(0.5)
+          // Use direct coordinates (do not invert!)
+          const rawPosX = pEyeMidpoint.x
+          const rawPosY = pEyeMidpoint.y
+          const rawPosZ = pEyeMidpoint.z
 
           // 2. Sizing: distance between left and right temple landmarks in pixel space
           const faceWidth = pLeftTemple.distanceTo(pRightTemple)
-          // 1.05 adds a tiny padding to fit around the face profile nicely
-          const rawScale = faceWidth * 1.05
-
+          const config = MODEL_CONFIGS[product.modelUrl] || { scaleMultiplier: 1.15, yOffset: -0.04, zOffset: 0.05 }
+          const rawScale = faceWidth * (config.scaleMultiplier || 1.15)
+          
           // 3. Rotation: build face coordinate system
-          const vX = new THREE.Vector3().subVectors(pRightEye, pLeftEye).normalize()
-          const vYRaw = new THREE.Vector3().subVectors(pForehead, pChin).normalize()
+          let vX = new THREE.Vector3().subVectors(pLeftEye, pRightEye).normalize()
+          // GUARANTEE vX points RIGHT (+X) so glasses are never rendered backwards!
+          if (vX.x < 0) vX.negate()
+
+          let vYRaw = new THREE.Vector3().subVectors(pForehead, pChin).normalize()
+          // GUARANTEE vYRaw points UP (+Y)
+          if (vYRaw.y < 0) vYRaw.negate()
+
           const vZ = new THREE.Vector3().crossVectors(vX, vYRaw).normalize()
           const vY = new THREE.Vector3().crossVectors(vZ, vX).normalize()
 
@@ -451,8 +520,8 @@ function ProductDetailPage() {
           // Apply offset in face-local space:
           // - Shift down slightly so frame sits on nose bridge (y direction)
           // - Shift forward slightly to avoid lens clipping (z direction)
-          const verticalOffset = -0.04 * smoothState.scaleVal
-          const depthOffset = 0.08 * smoothState.scaleVal
+          const verticalOffset = (config.yOffset ?? -0.04) * smoothState.scaleVal
+          const depthOffset = (config.zOffset ?? 0.05) * smoothState.scaleVal
           const yOffsetVec = vY.clone().multiplyScalar(verticalOffset)
           const zOffsetVec = vZ.clone().multiplyScalar(depthOffset)
           glassesGroup.position.add(yOffsetVec).add(zOffsetVec)
@@ -476,8 +545,8 @@ function ProductDetailPage() {
           } catch { }
         }
       },
-      width: VIDEO_W,
-      height: VIDEO_H
+      width: 1280,
+      height: 720
     })
     cameraHelper.start()
     cameraUtilsRef.current = cameraHelper
@@ -734,21 +803,21 @@ function ProductDetailPage() {
                 <div className="capture-share-grid">
                   <button className="share-platform-btn whatsapp" onClick={shareToWhatsApp}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
                     </svg>
                     WhatsApp
                   </button>
 
                   <button className="share-platform-btn twitter" onClick={shareToTwitter}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                     </svg>
                     Twitter / X
                   </button>
 
                   <button className="share-platform-btn facebook" onClick={shareToFacebook}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                     </svg>
                     Facebook
                   </button>
