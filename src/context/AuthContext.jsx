@@ -38,11 +38,13 @@ export const AuthProvider = ({ children }) => {
               }
               setUser(updatedSession)
               localStorage.setItem('vto_user', JSON.stringify(updatedSession))
+              localStorage.setItem('auth_token', user.token)
             }
           } else {
             // Token is invalid/expired, log out
             setUser(null)
             localStorage.removeItem('vto_user')
+            localStorage.removeItem('auth_token')
           }
         } catch (error) {
           console.error('Session validation failed:', error)
@@ -89,6 +91,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(sessionData)
       localStorage.setItem('vto_user', JSON.stringify(sessionData))
+      localStorage.setItem('auth_token', sessionData.token)
       return { success: true, userName: data.user.name }
     } catch (error) {
       return { success: false, error: error.message }
@@ -161,6 +164,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(sessionData)
       localStorage.setItem('vto_user', JSON.stringify(sessionData))
+      localStorage.setItem('auth_token', sessionData.token)
       return { success: true, userName: data.user.name }
     } catch (error) {
       return { success: false, error: error.message }
@@ -176,6 +180,7 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(guestData)
     localStorage.setItem('vto_user', JSON.stringify(guestData))
+    localStorage.removeItem('auth_token')
     return { success: true }
   }
 
@@ -196,6 +201,7 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(null)
     localStorage.removeItem('vto_user')
+    localStorage.removeItem('auth_token')
     setLoading(false)
   }
 

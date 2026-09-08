@@ -96,7 +96,43 @@ function ProductDetailPage() {
   const historyLoggedRef = useRef(false)
   const logTryOnHistoryRef = useRef(null)
 
-  const product = DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1]
+  const [product, setProduct] = useState(() => DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1])
+
+  // Sync / fetch product dynamically from API or DUMMY_PRODUCTS
+  useEffect(() => {
+    if (DUMMY_PRODUCTS[id]) {
+      setProduct(DUMMY_PRODUCTS[id])
+    }
+
+    const fetchProductDetails = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/products/${id}`)
+        if (res.ok) {
+          const json = await res.json()
+          const pData = json.data || json
+          if (pData && pData.id) {
+            setProduct(prev => ({
+              ...prev,
+              ...pData,
+              id: pData.id,
+              name: pData.name || prev.name,
+              shape: pData.shape || pData.category || prev.shape,
+              color: pData.color || prev.color,
+              price: Number(pData.price) || prev.price,
+              category: pData.category || prev.category,
+              description: pData.description || prev.description,
+              modelUrl: pData.model_url || pData.modelUrl || prev.modelUrl,
+              image: pData.image_url || pData.image || prev.image
+            }))
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully to existing DUMMY_PRODUCTS
+      }
+    }
+
+    fetchProductDetails()
+  }, [id])
 
   // Dynamic Rating State synced with ReviewSection
   const [currentRating, setCurrentRating] = useState(product.rating || 4.7)
@@ -126,7 +162,7 @@ function ProductDetailPage() {
         return
       }
       try {
-        const token = localStorage.getItem('auth_token')
+        const token = user?.token || localStorage.getItem('auth_token')
         if (!token) return
         const res = await fetch(`${API_BASE_URL}/favorites`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -134,7 +170,7 @@ function ProductDetailPage() {
         if (res.ok) {
           const data = await res.json()
           const favList = data.data || []
-          setIsFavorite(favList.some(item => String(item.product_id) === String(product.id)))
+          setIsFavorite(favList.some(item => String(item.product_id) === String(product.id) || String(item.id) === String(product.id)))
         }
       } catch {
         const localFavs = JSON.parse(localStorage.getItem('vto_favorites') || '[]')
@@ -161,9 +197,9 @@ function ProductDetailPage() {
     }
 
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = user?.token || localStorage.getItem('auth_token')
       if (token && !user?.isGuest) {
-        await fetch(`${API_BASE_URL}/try-on-history`, {
+        await fetch(`${API_BASE_URL}/history`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -199,7 +235,7 @@ function ProductDetailPage() {
     }
 
     try {
-      const token = localStorage.getItem('auth_token')
+      const token = user?.token || localStorage.getItem('auth_token')
       const res = await fetch(`${API_BASE_URL}/favorites/toggle`, {
         method: 'POST',
         headers: {
@@ -210,7 +246,8 @@ function ProductDetailPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setIsFavorite(data.is_favorite)
+        const favStatus = data.is_favorited !== undefined ? data.is_favorited : data.is_favorite
+        setIsFavorite(Boolean(favStatus))
       }
     } catch {
       setIsFavorite(!isFavorite)
@@ -525,9 +562,12 @@ function ProductDetailPage() {
     const video = videoRef.current
     const arCanvas = arCanvasRef.current
 
+    const videoW = video.videoWidth || 640
+    const videoH = video.videoHeight || 480
+
     const captureCanvas = document.createElement('canvas')
-    captureCanvas.width = 640
-    captureCanvas.height = 480
+    captureCanvas.width = videoW
+    captureCanvas.height = videoH
     const ctx = captureCanvas.getContext('2d')
 
     ctx.save()
@@ -538,9 +578,12 @@ function ProductDetailPage() {
     ctx.drawImage(arCanvas, 0, 0, captureCanvas.width, captureCanvas.height)
     ctx.restore()
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)'
-    ctx.font = 'bold 13px Outfit, sans-serif'
-    ctx.fillText(`VTO Glasses — ${product.name}`, 16, captureCanvas.height - 16)
+    // Subtle bottom gradient branding overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'
+    ctx.fillRect(0, captureCanvas.height - 42, captureCanvas.width, 42)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.font = 'bold 14px Outfit, sans-serif'
+    ctx.fillText(`VTO Glasses — ${product.name}`, 18, captureCanvas.height - 15)
 
     const dataUrl = captureCanvas.toDataURL('image/png')
     setCapturedImageUrl(dataUrl)
@@ -633,14 +676,21 @@ function ProductDetailPage() {
     setCopySuccess(false)
   }, [])
 
-  const handleAddToCart = () => {
-    if (user?.isGuest) {
-      alert('Silakan login terlebih dahulu untuk menambahkan produk ke keranjang belanja.')
-      navigate('/login')
-      return
+  // ─── MODEL SWITCHING (IN-STREAM AR OR ROUTE CHANGE) ───
+  const handleSwitchModel = (p) => {
+    if (String(p.id) === String(product.id)) return
+    if (cameraActive) {
+      // In-stream switching: update active model without remounting camera stream
+      setProduct(p)
+      window.history.replaceState(null, '', `/catalog/${p.id}`)
+    } else {
+      navigate(`/catalog/${p.id}`)
     }
+  }
+
+  const handleAddToCart = () => {
     let cart = JSON.parse(localStorage.getItem('vto_cart') || '[]')
-    const existingIndex = cart.findIndex(item => item.id === product.id)
+    const existingIndex = cart.findIndex(item => String(item.id) === String(product.id))
     if (existingIndex > -1) {
       cart[existingIndex].qty += 1
     } else {
@@ -656,7 +706,8 @@ function ProductDetailPage() {
       })
     }
     localStorage.setItem('vto_cart', JSON.stringify(cart))
-    setToastMessage(`${product.name} ditambahkan ke keranjang!`)
+    window.dispatchEvent(new Event('vto_cart_updated'))
+    setToastMessage(`${product.name} berhasil ditambahkan ke keranjang!`)
     setTimeout(() => setToastMessage(null), 3000)
   }
 
@@ -867,15 +918,15 @@ function ProductDetailPage() {
           )}
 
           {/* Action Buttons */}
-          <div className="pdp-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-            <button className="pdp-btn-cart" onClick={handleAddToCart} style={{ flex: 1 }}>
+          <div className="pdp-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+            <button className="pdp-btn-cart" onClick={handleAddToCart} style={{ flex: '1 1 200px' }}>
               + Tambah ke Keranjang
             </button>
             <button 
               className="pdp-btn-cart" 
               onClick={() => navigate(`/compare?left=${product.id}`)}
               style={{
-                flex: 1,
+                flex: '1 1 160px',
                 backgroundColor: '#FAF8F5',
                 color: '#1C1816',
                 border: '1.5px solid #C5A880',
@@ -1034,8 +1085,8 @@ function ProductDetailPage() {
               {Object.values(DUMMY_PRODUCTS).map(p => (
                 <div
                   key={p.id}
-                  className={`pdp-switch-item ${p.id === product.id ? 'active' : ''}`}
-                  onClick={() => navigate(`/catalog/${p.id}`)}
+                  className={`pdp-switch-item ${String(p.id) === String(product.id) ? 'active' : ''}`}
+                  onClick={() => handleSwitchModel(p)}
                   title={p.name}
                 >
                   <img src={p.image} alt={p.name} className="pdp-switch-img" />

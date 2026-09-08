@@ -197,16 +197,16 @@
 .vto-form-fields {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
   overflow-y: visible;
   max-height: none;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .vto-input-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   text-align: left;
 }
 
@@ -265,7 +265,7 @@
 .vto-action-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
 }
 

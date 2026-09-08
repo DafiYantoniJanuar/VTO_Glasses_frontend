@@ -8,7 +8,7 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 16px 20px 64px 20px;
+  padding: 40px 48px 64px 48px;
   font-family: 'Outfit', sans-serif;
   box-sizing: border-box;
 }
@@ -35,7 +35,7 @@
 .pdp-left {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   width: 100%;
 }
 
@@ -43,7 +43,7 @@
 .pdp-breadcrumb {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 0.8rem;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -152,7 +152,7 @@
 .pdp-switch-pills {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   overflow-x: auto;
   padding-bottom: 6px;
@@ -171,14 +171,14 @@
 .pdp-switch-item {
   flex: 1;
   min-width: 90px;
-  padding: 8px;
+  padding: 10px 8px;
   background-color: #FAF8F5;
   border: 1.5px solid #E5DBD0;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-sizing: border-box;
@@ -221,7 +221,7 @@
 .pdp-info {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   background-color: #FFFFFF;
   border: 1.5px solid #E5DBD0;
   border-radius: 12px;
@@ -267,13 +267,13 @@
 .pdp-stars {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .pdp-rating-num {
   font-size: 0.82rem;
   color: #7A6F68;
-  margin-left: 6px;
+  margin-left: 8px;
   font-weight: 500;
 }
 
@@ -298,7 +298,7 @@
   display: flex;
   gap: 20px;
   border-bottom: 1.5px solid #E5DBD0;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .pdp-tab {
@@ -358,7 +358,7 @@
 .pdp-actions {
   display: flex;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
 .pdp-btn-cart {
@@ -616,6 +616,10 @@
 }
 
 @media (max-width: 900px) {
+  .pdp-wrapper {
+    padding: 24px 20px 48px;
+  }
+
   .pdp-main-grid {
     grid-template-columns: 1fr;
   }
@@ -676,7 +680,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px 14px;
+  padding: 18px 24px;
   border-bottom: 1.5px solid #F0E8E0;
   background: #FAF8F5;
 }

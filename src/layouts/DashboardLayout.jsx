@@ -48,11 +48,39 @@ const LogOutIcon = () => (
   </svg>
 )
 
+const UserIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+)
+
 function DashboardLayout() {
   const { user, loading, initializing, logout } = useAuth()
   const navigate = useNavigate()
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
   const menuRef = useRef(null)
+
+  const updateCartCount = () => {
+    try {
+      const items = JSON.parse(localStorage.getItem('vto_cart') || '[]')
+      const total = items.reduce((sum, item) => sum + (Number(item.qty) || 1), 0)
+      setCartCount(total)
+    } catch {
+      setCartCount(0)
+    }
+  }
+
+  useEffect(() => {
+    updateCartCount()
+    window.addEventListener('storage', updateCartCount)
+    window.addEventListener('vto_cart_updated', updateCartCount)
+    return () => {
+      window.removeEventListener('storage', updateCartCount)
+      window.removeEventListener('vto_cart_updated', updateCartCount)
+    }
+  }, [])
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
@@ -114,7 +142,7 @@ function DashboardLayout() {
             Compare
           </NavLink>
           <NavLink to="/checkout" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
-            Sale
+            Checkout
           </NavLink>
           {(user?.role === 'admin' || user?.email === 'admin@vtogla.com') && (
             <NavLink to="/admin/orders" className={({ isActive }) => `vto-nav-link ${isActive ? 'active' : ''}`}>
@@ -128,8 +156,11 @@ function DashboardLayout() {
             <SearchIcon />
           </button>
 
-          <button className="vto-nav-icon-btn" onClick={() => navigate('/checkout')} title="Cart / Checkout">
+          <button className="vto-nav-icon-btn vto-cart-btn" onClick={() => navigate('/checkout')} title="Cart / Checkout">
             <CartIcon />
+            {cartCount > 0 && (
+              <span className="vto-cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>
+            )}
           </button>
 
           {/* Profile Avatar with Dropdown */}
@@ -154,6 +185,18 @@ function DashboardLayout() {
                     {(user.role === 'admin' || user.email === 'admin@vtogla.com') ? 'Admin Administrator' : (user.isGuest ? 'Guest Mode' : 'Authenticated')}
                   </span>
                 </div>
+
+                <button 
+                  type="button" 
+                  className="vto-dropdown-item-btn" 
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    navigate('/account')
+                  }}
+                >
+                  <UserIcon />
+                  <span>My Account & Studio</span>
+                </button>
 
                 <button 
                   type="button" 

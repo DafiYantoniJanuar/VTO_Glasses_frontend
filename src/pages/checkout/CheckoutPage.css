@@ -13,7 +13,7 @@
 /* Left Content - Forms & Cart */
 .co-left {
   flex: 0 0 60%;
-  padding: 60px 40px 60px 80px;
+  padding: 48px;
   background-color: transparent;
   box-sizing: border-box;
 }
@@ -108,7 +108,7 @@
   flex-direction: column;
   justify-content: center;
   padding: 0;
-  gap: 6px;
+  gap: 10px;
 }
 
 .co-item-name {
@@ -255,7 +255,7 @@
 /* Right Content - Order Summary */
 .co-right {
   flex: 1;
-  padding: 60px 80px 60px 40px;
+  padding: 48px;
   box-sizing: border-box;
   position: relative;
 }
@@ -456,8 +456,8 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .co-left { padding: 50px; }
-  .co-right { padding: 50px; }
+  .co-left { padding: 40px; }
+  .co-right { padding: 40px; }
 }
 
 @media (max-width: 900px) {
@@ -465,9 +465,9 @@
   .co-left { 
     border-right: none; 
     border-bottom: 1px solid #EADFD5; 
-    padding: 40px; 
+    padding: 32px 20px; 
   }
-  .co-right { padding: 40px; }
+  .co-right { padding: 32px 20px; }
   .co-form-row { flex-direction: column; gap: 28px; }
   .co-summary-card { position: static; }
 }

@@ -34,12 +34,14 @@ function CheckoutPage() {
     )
     setCart(updated)
     localStorage.setItem('vto_cart', JSON.stringify(updated))
+    window.dispatchEvent(new Event('vto_cart_updated'))
   }
 
   const removeItem = (id) => {
     const updated = cart.filter(item => item.id !== id)
     setCart(updated)
     localStorage.setItem('vto_cart', JSON.stringify(updated))
+    window.dispatchEvent(new Event('vto_cart_updated'))
   }
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0)
@@ -48,6 +50,11 @@ function CheckoutPage() {
 
   const handleOrder = async (e) => {
     e.preventDefault()
+
+    if (cart.length === 0) {
+      alert('Keranjang belanja Anda masih kosong.')
+      return
+    }
 
     const payload = {
       first_name: form.firstName,
@@ -85,6 +92,7 @@ function CheckoutPage() {
 
       if (res.ok) {
         localStorage.removeItem('vto_cart')
+        window.dispatchEvent(new Event('vto_cart_updated'))
         setCart([])
         setOrdered(true)
       } else {
@@ -168,45 +176,56 @@ function CheckoutPage() {
         </section>
 
         {/* Shipping Form */}
-        <section className="co-section">
-          <h2 className="co-section-title">Detail Pengiriman</h2>
-          <form className="co-form" id="checkout-form" onSubmit={handleOrder}>
-            <div className="co-form-row">
-              <div className="co-field-group">
-                <label className="co-label">NAMA DEPAN</label>
-                <input className="co-input" placeholder="Jane" value={form.firstName}
-                  onChange={e => setForm(prev => ({ ...prev, firstName: e.target.value }))} required />
+        {cart.length > 0 ? (
+          <section className="co-section">
+            <h2 className="co-section-title">Detail Pengiriman</h2>
+            <form className="co-form" id="checkout-form" onSubmit={handleOrder}>
+              <div className="co-form-row">
+                <div className="co-field-group">
+                  <label className="co-label">NAMA DEPAN</label>
+                  <input className="co-input" placeholder="Jane" value={form.firstName}
+                    onChange={e => setForm(prev => ({ ...prev, firstName: e.target.value }))} required />
+                </div>
+                <div className="co-field-group">
+                  <label className="co-label">NAMA BELAKANG</label>
+                  <input className="co-input" placeholder="Doe" value={form.lastName}
+                    onChange={e => setForm(prev => ({ ...prev, lastName: e.target.value }))} required />
+                </div>
               </div>
               <div className="co-field-group">
-                <label className="co-label">NAMA BELAKANG</label>
-                <input className="co-input" placeholder="Doe" value={form.lastName}
-                  onChange={e => setForm(prev => ({ ...prev, lastName: e.target.value }))} required />
-              </div>
-            </div>
-            <div className="co-field-group">
-              <label className="co-label">ALAMAT EMAIL</label>
-              <input type="email" className="co-input" placeholder="jane@example.com" value={form.email}
-                onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))} required />
-            </div>
-            <div className="co-field-group">
-              <label className="co-label">ALAMAT LENGKAP PENGIRIMAN</label>
-              <input className="co-input" placeholder="Jl. Sudirman No. 123" value={form.address}
-                onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))} required />
-            </div>
-            <div className="co-form-row">
-              <div className="co-field-group">
-                <label className="co-label">KOTA</label>
-                <input className="co-input" placeholder="Jakarta" value={form.city}
-                  onChange={e => setForm(prev => ({ ...prev, city: e.target.value }))} required />
+                <label className="co-label">ALAMAT EMAIL</label>
+                <input type="email" className="co-input" placeholder="jane@example.com" value={form.email}
+                  onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))} required />
               </div>
               <div className="co-field-group">
-                <label className="co-label">KODE POS</label>
-                <input className="co-input" placeholder="10110" value={form.zip}
-                  onChange={e => setForm(prev => ({ ...prev, zip: e.target.value }))} required />
+                <label className="co-label">ALAMAT LENGKAP PENGIRIMAN</label>
+                <input className="co-input" placeholder="Jl. Sudirman No. 123" value={form.address}
+                  onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))} required />
               </div>
-            </div>
-          </form>
-        </section>
+              <div className="co-form-row">
+                <div className="co-field-group">
+                  <label className="co-label">KOTA</label>
+                  <input className="co-input" placeholder="Jakarta" value={form.city}
+                    onChange={e => setForm(prev => ({ ...prev, city: e.target.value }))} required />
+                </div>
+                <div className="co-field-group">
+                  <label className="co-label">KODE POS</label>
+                  <input className="co-input" placeholder="10110" value={form.zip}
+                    onChange={e => setForm(prev => ({ ...prev, zip: e.target.value }))} required />
+                </div>
+              </div>
+            </form>
+          </section>
+        ) : (
+          <section className="co-section" style={{ textAlign: 'center', padding: '36px 20px', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #EAE5DF' }}>
+            <p style={{ color: '#7A6F68', fontSize: '0.95rem', marginBottom: '16px' }}>
+              Tambahkan produk ke keranjang untuk mengisi detail pengiriman pesanan Anda.
+            </p>
+            <button onClick={() => navigate('/catalog')} className="co-btn-primary">
+              Eksplorasi Katalog Kacamata
+            </button>
+          </section>
+        )}
       </div>
 
       {/* Right: Order Summary */}
@@ -239,12 +258,13 @@ function CheckoutPage() {
             form="checkout-form"
             className="co-place-order-btn"
             disabled={cart.length === 0}
+            style={cart.length === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            Buat Pesanan
+            {cart.length === 0 ? 'Keranjang Kosong' : 'Buat Pesanan'}
           </button>
           <p className="co-secure-text">Transaksi Aman & Terenkripsi.</p>
         </div>

@@ -94,7 +94,7 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
 }
 
 .hist-name {
@@ -113,7 +113,7 @@
 .hist-actions {
   display: flex;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .hist-retry-btn {

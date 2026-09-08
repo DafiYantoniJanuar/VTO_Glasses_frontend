@@ -12,7 +12,7 @@
 /* Main content column */
 .cat-main {
   flex: 1;
-  padding: 36px 40px;
+  padding: 40px 48px;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -31,7 +31,7 @@
 .cat-header-left {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .cat-title {
@@ -121,6 +121,9 @@
 }
 
 @media (max-width: 768px) {
+  .cat-main {
+    padding: 24px 20px;
+  }
   .cat-grid {
     grid-template-columns: 1fr;
   }
