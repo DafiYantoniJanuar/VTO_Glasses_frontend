@@ -1,0 +1,329 @@
+/* FaceShape.css — Luxury Minimalist Theme */
+
+/* ══════════════════════════════════════════════════════
+   FACE SHAPE CARD — Below camera actions
+   ══════════════════════════════════════════════════════ */
+
+.fsp-card {
+  width: 100%;
+  background: #FFFFFF;
+  border: 1.5px solid #E5DBD0;
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+  margin-top: 12px;
+  animation: fspCardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fspCardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Card Header ─── */
+.fsp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #FAF8F5;
+  border-bottom: 1.5px solid #E5DBD0;
+}
+
+.fsp-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fsp-card-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1C1816;
+  letter-spacing: 0.02em;
+}
+
+.fsp-close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #E5DBD0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #5C524C;
+  transition: all 0.2s ease;
+}
+
+.fsp-close-btn:hover {
+  background: #1C1816;
+  color: #FFFFFF;
+}
+
+/* ─── Analyzing State ─── */
+.fsp-analyzing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  justify-content: center;
+}
+
+.fsp-analyzing-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid #E5DBD0;
+  border-top-color: #C5A880;
+  border-radius: 50%;
+  animation: fspSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes fspSpin {
+  to { transform: rotate(360deg); }
+}
+
+.fsp-analyzing-text {
+  font-size: 0.82rem;
+  color: #7A6F68;
+  font-weight: 500;
+}
+
+/* ─── Result ─── */
+.fsp-result {
+  padding: 16px;
+  animation: fspResultIn 0.3s ease;
+}
+
+@keyframes fspResultIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Top: Diagram + Info */
+.fsp-result-top {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.fsp-diagram-wrap {
+  width: 64px;
+  height: 76px;
+  flex-shrink: 0;
+  background: #FAF8F5;
+  border: 1.5px solid #E5DBD0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.fsp-diagram {
+  width: 100%;
+  height: 100%;
+}
+
+.fsp-result-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fsp-result-shape {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1C1816;
+  letter-spacing: -0.01em;
+}
+
+.fsp-result-confidence {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #C5A880;
+  letter-spacing: 0.02em;
+}
+
+.fsp-result-desc {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #7A6F68;
+  margin: 4px 0 0;
+}
+
+/* Divider */
+.fsp-divider {
+  height: 1px;
+  background: #E5DBD0;
+  margin: 14px 0;
+}
+
+/* Sections */
+.fsp-section {
+  margin-bottom: 12px;
+}
+
+.fsp-section:last-child {
+  margin-bottom: 0;
+}
+
+.fsp-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #22C55E;
+  margin-bottom: 8px;
+}
+
+.fsp-section-label.avoid {
+  color: #EF4444;
+}
+
+/* Chips */
+.fsp-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fsp-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+.fsp-chip.good {
+  background: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+.fsp-chip.bad {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  text-decoration: line-through;
+}
+
+/* Current Product Hint */
+.fsp-current-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: #FAF8F5;
+  border: 1px solid #E5DBD0;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #5C524C;
+}
+
+.fsp-current-hint svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.fsp-current-hint b {
+  color: #1C1816;
+  font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════════════
+   FACE SHAPE BADGE — On catalog product cards
+   ══════════════════════════════════════════════════════ */
+
+.fsb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(34, 197, 94, 0.08));
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 20px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #16A34A;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.12);
+  animation: fsbSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fsbSlideUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════
+   SCAN BUTTON — Next to Capture
+   ══════════════════════════════════════════════════════ */
+
+.pdp-scan-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 20px;
+  background-color: #FAF8F5;
+  color: #1C1816;
+  border: 1.5px solid #C5A880;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.pdp-scan-btn:hover {
+  background-color: #C5A880;
+  color: #1C1816;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(197, 168, 128, 0.25);
+}
+
+.pdp-scan-btn:active {
+  transform: translateY(0);
+}
+
+.pdp-scan-btn.scanning {
+  background: #C5A880;
+  color: #1C1816;
+  pointer-events: none;
+}
+
+.pdp-scan-btn.done {
+  background: #1C1816;
+  color: #FFFFFF;
+  border-color: #1C1816;
+}
+
+.pdp-scan-btn.done:hover {
+  background: #38312E;
+}
+
+@media (max-width: 900px) {
+  .pdp-scan-btn {
+    width: 100%;
+  }
+}

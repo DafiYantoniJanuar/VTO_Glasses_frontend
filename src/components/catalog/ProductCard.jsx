@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
+import FaceShapeBadge from '../faceShape/FaceShapeBadge'
 import './ProductCard.css'
 
-function ProductCard({ product, isAdmin = false, onEdit, onDelete }) {
+function ProductCard({ product, isAdmin = false, onEdit, onDelete, faceShape }) {
   const navigate = useNavigate()
   const {
     id,
@@ -25,6 +26,7 @@ function ProductCard({ product, isAdmin = false, onEdit, onDelete }) {
       {/* Image Area */}
       <div className="pc-image-wrap">
         {isBestSeller && <span className="pc-badge">Best Seller</span>}
+        {faceShape && <FaceShapeBadge productShape={shape} faceShape={faceShape} />}
         {image ? (
           <img src={image} alt={name} className="pc-img" />
         ) : (

@@ -561,10 +561,22 @@
   display: flex;
   gap: 10px;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .pdp-camera-actions .pdp-tryon-cta {
   flex: 1;
+  min-width: 140px;
+}
+
+.pdp-camera-actions .pdp-capture-btn {
+  flex: 1;
+  min-width: 110px;
+}
+
+.pdp-camera-actions .pdp-scan-btn {
+  flex: 1;
+  min-width: 130px;
 }
 
 .pdp-capture-btn {

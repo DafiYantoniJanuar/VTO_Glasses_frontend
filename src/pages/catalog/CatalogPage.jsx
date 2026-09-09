@@ -29,6 +29,7 @@ function CatalogPage() {
   const [sort, setSort] = useState('Newest')
   const [search, setSearch] = useState('')
   const [toastMessage, setToastMessage] = useState(null)
+  const [detectedFaceShape, setDetectedFaceShape] = useState(null)
 
   // Admin Modal & Action States
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -65,6 +66,8 @@ function CatalogPage() {
 
   useEffect(() => {
     fetchProducts()
+    const savedShape = localStorage.getItem('vto_detected_face_shape')
+    if (savedShape) setDetectedFaceShape(savedShape)
   }, [])
 
   const showToast = (msg) => {
@@ -284,6 +287,7 @@ function CatalogPage() {
                 isAdmin={isAdmin}
                 onEdit={handleOpenEdit}
                 onDelete={(id) => setDeleteId(id)}
+                faceShape={detectedFaceShape}
               />
             ))}
           </div>
