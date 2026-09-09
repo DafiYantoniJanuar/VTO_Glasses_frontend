@@ -42,8 +42,11 @@ function AdminCatalogPage() {
     price: '',
     category: 'Sunglasses',
     description: '',
+    stock: 0,
     best_seller: false
   })
+  const [modelFile, setModelFile] = useState(null)
+  const [existingModelUrl, setExistingModelUrl] = useState('')
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -80,8 +83,11 @@ function AdminCatalogPage() {
       price: '',
       category: 'Sunglasses',
       description: '',
+      stock: 0,
       best_seller: false
     })
+    setModelFile(null)
+    setExistingModelUrl('')
     setIsModalOpen(true)
   }
 
@@ -94,8 +100,11 @@ function AdminCatalogPage() {
       price: product.price,
       category: product.category,
       description: product.description || '',
+      stock: product.stock || 0,
       best_seller: product.best_seller || false
     })
+    setModelFile(null)
+    setExistingModelUrl(product.model_3d_url || '')
     setIsModalOpen(true)
   }
 
@@ -110,42 +119,48 @@ function AdminCatalogPage() {
   const handleSave = async (e) => {
     e.preventDefault()
     setIsSaving(true)
-    const payload = {
-      ...formData,
-      price: parseFloat(formData.price)
+
+    const submitData = new FormData()
+    submitData.append('name', formData.name)
+    submitData.append('shape', formData.shape)
+    submitData.append('color', formData.color)
+    submitData.append('price', parseFloat(formData.price))
+    submitData.append('category', formData.category)
+    submitData.append('description', formData.description || '')
+    submitData.append('stock', parseInt(formData.stock) || 0)
+    submitData.append('best_seller', formData.best_seller ? '1' : '0')
+
+    if (modelFile) {
+      submitData.append('model_3d', modelFile)
     }
 
     try {
-      if (editingProduct) {
-        const res = await fetch(`${API_PRODUCTS_URL}/${editingProduct.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (res.ok) {
-          showToast(`Kacamata "${formData.name}" berhasil diperbarui!`)
-        } else {
-          setProducts(products.map(p => p.id === editingProduct.id ? { ...p, ...payload } : p))
-          showToast(`Kacamata "${formData.name}" diperbarui!`)
-        }
+      const url = editingProduct ? `${API_PRODUCTS_URL}/${editingProduct.id}` : API_PRODUCTS_URL
+      const method = 'POST'
+      if (editingProduct) submitData.append('_method', 'PUT')
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Accept': 'application/json' },
+        body: submitData
+      })
+
+      const resBody = await res.json().catch(() => null)
+      console.log('Save response:', res.status, resBody)
+
+      if (res.ok) {
+        showToast(editingProduct ? `Kacamata "${formData.name}" berhasil diperbarui!` : `Kacamata baru "${formData.name}" berhasil ditambahkan!`)
       } else {
-        const res = await fetch(API_PRODUCTS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (res.ok) {
-          showToast(`Kacamata baru "${formData.name}" berhasil ditambahkan!`)
-        } else {
-          const newProd = { id: Date.now(), image: showcaseImg, ...payload }
-          setProducts([newProd, ...products])
-          showToast(`Kacamata baru "${formData.name}" ditambahkan!`)
-        }
+        const errMsg = resBody?.message || JSON.stringify(resBody)
+        showToast(`Error: ${errMsg}`)
+        console.error('Save failed:', res.status, resBody)
       }
+
       await fetchProducts()
       setIsModalOpen(false)
     } catch (err) {
-      console.error(err)
+      console.error('Save exception:', err)
+      showToast('Gagal menyimpan: ' + err.message)
       setIsModalOpen(false)
     } finally {
       setIsSaving(false)
@@ -464,6 +479,40 @@ function AdminCatalogPage() {
                   value={formData.description}
                   onChange={handleInputChange}
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Stok</label>
+                <input
+                  type="number"
+                  name="stock"
+                  className="form-input"
+                  min="0"
+                  placeholder="0"
+                  value={formData.stock}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="form-group full">
+                <label className="form-label">Model 3D (.glb)</label>
+                <input
+                  type="file"
+                  accept=".glb"
+                  className="form-input"
+                  onChange={(e) => setModelFile(e.target.files[0])}
+                  style={{ padding: '8px 0' }}
+                />
+                {existingModelUrl && !modelFile && (
+                  <p style={{ fontSize: '0.78rem', color: '#7A6F68', marginTop: '6px' }}>
+                    File saat ini: {existingModelUrl.split('/').pop()}
+                  </p>
+                )}
+                {modelFile && (
+                  <p style={{ fontSize: '0.78rem', color: '#C5A880', marginTop: '6px' }}>
+                    File baru dipilih: {modelFile.name}
+                  </p>
+                )}
               </div>
 
               <div className="form-group full" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>

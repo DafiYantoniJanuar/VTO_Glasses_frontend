@@ -81,6 +81,7 @@ function ComparePage() {
   const [cameraError, setCameraError] = useState(null)
   const [faceDetected, setFaceDetected] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
+  const [apiProducts, setApiProducts] = useState([])
 
   // Capture Modal State
   const [capturedImageUrl, setCapturedImageUrl] = useState(null)
@@ -97,9 +98,32 @@ function ComparePage() {
   const cameraUtilsRef = useRef(null)
   const faceMeshRef = useRef(null)
 
-  const leftProduct = leftProductId ? DUMMY_PRODUCTS[leftProductId] : null
-  const rightProduct = rightProductId ? DUMMY_PRODUCTS[rightProductId] : null
-  const allProducts = Object.values(DUMMY_PRODUCTS)
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/products`)
+        if (res.ok) {
+          const json = await res.json()
+          if (json.data) setApiProducts(json.data)
+        }
+      } catch { }
+    }
+    fetchProducts()
+  }, [])
+
+  const mergedProducts = { ...DUMMY_PRODUCTS }
+  apiProducts.forEach(p => {
+    mergedProducts[p.id] = {
+      ...(DUMMY_PRODUCTS[p.id] || {}),
+      ...p,
+      modelUrl: p.model_3d_url || DUMMY_PRODUCTS[p.id]?.modelUrl || '/models/glasses_2.glb',
+      image: p.image || DUMMY_PRODUCTS[p.id]?.image,
+    }
+  })
+
+  const leftProduct = leftProductId ? mergedProducts[leftProductId] : null
+  const rightProduct = rightProductId ? mergedProducts[rightProductId] : null
+  const allProducts = Object.values(mergedProducts)
 
   const showToast = (msg) => {
     setToastMessage(msg)

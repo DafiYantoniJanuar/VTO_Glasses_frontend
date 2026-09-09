@@ -7,6 +7,7 @@ import showcaseImg from '../../assets/glasses_showcase.png'
 import heroImg from '../../assets/hero.png'
 import Glasses3DViewer from '../../components/3d/Glasses3DViewer'
 import FaceShapePanel from '../../components/faceShape/FaceShapePanel'
+import ReviewSection from '../../components/review/ReviewSection'
 import './ProductDetailPage.css'
 
 const API_BASE_URL = 'http://localhost:8000/api'
@@ -50,9 +51,9 @@ const formatPrice = (p) =>
 
 const lerp = (prev, next, alpha) => prev + (next - prev) * alpha
 
-function StarRating({ rating, total }) {
+function StarRating({ rating, total, onClick }) {
   return (
-    <div className="pdp-stars">
+    <div className="pdp-stars" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }} title="Lihat Ulasan Pembeli">
       {[1, 2, 3, 4, 5].map(i => (
         <svg key={i} width="16" height="16" viewBox="0 0 24 24"
           fill={i <= Math.round(rating) ? '#C5A880' : 'none'}
@@ -61,7 +62,7 @@ function StarRating({ rating, total }) {
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       ))}
-      <span className="pdp-rating-num">{rating} ({total} ulasan)</span>
+      <span className="pdp-rating-num">{Number(rating || 5.0).toFixed(1)} ({total} ulasan)</span>
     </div>
   )
 }
@@ -74,6 +75,8 @@ function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState('description')
   const [previewMode, setPreviewMode] = useState('3d')
   const [toastMessage, setToastMessage] = useState(null)
+  const [apiProduct, setApiProduct] = useState(null)
+  const [currentProductId, setCurrentProductId] = useState(id)
 
   // Camera State
   const videoRef = useRef(null)
@@ -100,7 +103,63 @@ function ProductDetailPage() {
   const historyLoggedRef = useRef(false)
   const logTryOnHistoryRef = useRef(null)
 
-  const product = DUMMY_PRODUCTS[id] || DUMMY_PRODUCTS[1]
+  const dummy = DUMMY_PRODUCTS[currentProductId] || DUMMY_PRODUCTS[1]
+  const product = apiProduct ? {
+    ...dummy,
+    ...apiProduct,
+    modelUrl: apiProduct.model_3d_url || dummy.modelUrl,
+    image: apiProduct.image || dummy.image,
+  } : dummy
+
+  // ─── IN-STREAM MODEL SWITCHING STATE ───
+  const [currentModelUrl, setCurrentModelUrl] = useState(product.modelUrl)
+  const currentModelUrlRef = useRef(currentModelUrl)
+  const sceneObjRef = useRef(null)
+  const currentLoadedModelRef = useRef(null)
+  const loadGenerationRef = useRef(0)
+
+  useEffect(() => {
+    currentModelUrlRef.current = currentModelUrl
+  }, [currentModelUrl])
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/products/${currentProductId}`)
+        if (res.ok) {
+          const json = await res.json()
+          if (json.data) setApiProduct(json.data)
+        }
+      } catch { }
+    }
+    fetchProduct()
+  }, [currentProductId])
+
+  // Sync currentModelUrl when product changes from API only (not from carousel click)
+  useEffect(() => {
+    if (apiProduct?.model_3d_url) {
+      setCurrentModelUrl(apiProduct.model_3d_url)
+    }
+  }, [apiProduct?.model_3d_url])
+
+  // Dynamic Rating State synced with ReviewSection
+  const [currentRating, setCurrentRating] = useState(product.rating || 4.7)
+  const [currentReviewsCount, setCurrentReviewsCount] = useState(product.reviews || 0)
+
+  useEffect(() => {
+    setCurrentRating(product.rating || 4.7)
+    setCurrentReviewsCount(product.reviews || 0)
+  }, [product])
+
+  const scrollToReviews = () => {
+    const el = document.getElementById('reviews-section')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  // ─── FAVORITES LOGIC (API + localStorage sync) ───
+  const isLoggedIn = user && !user.isGuest && user.token
 
   // Check initial favorite status
   useEffect(() => {
@@ -263,7 +322,87 @@ function ProductDetailPage() {
     }
   }, [])
 
+  // ─── MODEL SWAP (in-stream, no camera restart) ───
+  const swapModel = useCallback((modelUrl) => {
+    const obj = sceneObjRef.current
+    if (!obj?.glassesGroup) return
+
+    const group = obj.glassesGroup
+    const generation = ++loadGenerationRef.current
+
+    // Dispose old model
+    while (group.children.length) {
+      const child = group.children[0]
+      group.remove(child)
+      child.traverse(c => {
+        if (c.geometry) c.geometry.dispose()
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach(m => m.dispose())
+          else c.material.dispose()
+        }
+      })
+    }
+    group.visible = false
+
+    const loader = new GLTFLoader()
+    loader.load(modelUrl, (gltf) => {
+      if (generation !== loadGenerationRef.current) return
+      if (!obj.scene) return
+
+      const glassesModel = gltf.scene
+      const box = new THREE.Box3()
+      let hasMesh = false
+      glassesModel.traverse((child) => {
+        if (child.isMesh) {
+          box.expandByObject(child)
+          hasMesh = true
+        }
+      })
+      if (!hasMesh) box.setFromObject(glassesModel)
+
+      const center = box.getCenter(new THREE.Vector3())
+      const size = box.getSize(new THREE.Vector3())
+
+      let pivotX = center.x
+      let pivotY = center.y
+      let pivotZ = center.z
+
+      const config = MODEL_CONFIGS[modelUrl] || { rotationY: 0 }
+      if (config.rotationY === 0) {
+        pivotZ = box.max.z - (size.z * 0.1)
+      } else if (config.rotationY === Math.PI / 2) {
+        pivotX = box.max.x - (size.x * 0.1)
+      } else if (config.rotationY === -Math.PI / 2) {
+        pivotX = box.min.x + (size.x * 0.1)
+      }
+
+      glassesModel.position.set(-pivotX, -pivotY, -pivotZ)
+
+      const wrapper = new THREE.Group()
+      wrapper.add(glassesModel)
+      if (config.rotationY) wrapper.rotation.y = config.rotationY
+
+      const widthDim = Math.max(size.x, size.z)
+      if (widthDim > 0) {
+        const s = 1.0 / widthDim
+        wrapper.scale.set(s, s, s)
+      }
+
+      group.add(wrapper)
+      group.visible = false
+      currentLoadedModelRef.current = modelUrl
+    })
+  }, [])
+
+  // Handle model swap when currentModelUrl changes while camera is active
+  useEffect(() => {
+    if (!cameraActive || !sceneObjRef.current?.glassesGroup) return
+    if (currentModelUrl === currentLoadedModelRef.current) return
+    swapModel(currentModelUrl)
+  }, [currentModelUrl, cameraActive, swapModel])
+
   // ─── MEDIAPIPE + THREE.JS AR OVERLAY ───
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- model swapping handled by separate effect
   useEffect(() => {
     if (!cameraActive || !videoRef.current || !arCanvasRef.current) return
 
@@ -295,59 +434,9 @@ function ProductDetailPage() {
     const glassesGroup = new THREE.Group()
     scene.add(glassesGroup)
 
-    let glassesModel = null
-    const loader = new GLTFLoader()
-    loader.load(product.modelUrl, (gltf) => {
-      if (!active) return
-      glassesModel = gltf.scene
-
-      const box = new THREE.Box3()
-      let hasMesh = false
-      glassesModel.traverse((child) => {
-        if (child.isMesh) {
-          box.expandByObject(child)
-          hasMesh = true
-        }
-      })
-
-      if (!hasMesh) {
-        box.setFromObject(glassesModel)
-      }
-
-      const center = box.getCenter(new THREE.Vector3())
-      const size = box.getSize(new THREE.Vector3())
-
-      let pivotX = center.x
-      let pivotY = center.y
-      let pivotZ = center.z
-
-      const config = MODEL_CONFIGS[product.modelUrl] || { rotationY: 0 }
-      if (config.rotationY === 0) {
-        pivotZ = box.max.z - (size.z * 0.1)
-      } else if (config.rotationY === Math.PI / 2) {
-        pivotX = box.max.x - (size.x * 0.1)
-      } else if (config.rotationY === -Math.PI / 2) {
-        pivotX = box.min.x + (size.x * 0.1)
-      }
-
-      glassesModel.position.set(-pivotX, -pivotY, -pivotZ)
-
-      const wrapper = new THREE.Group()
-      wrapper.add(glassesModel)
-
-      if (config.rotationY) {
-        wrapper.rotation.y = config.rotationY
-      }
-
-      const widthDim = Math.max(size.x, size.z)
-      if (widthDim > 0) {
-        const s = 1.0 / widthDim
-        wrapper.scale.set(s, s, s)
-      }
-
-      glassesGroup.add(wrapper)
-      glassesGroup.visible = false
-    })
+    sceneObjRef.current = { scene, renderer, glassesGroup }
+    swapModel(currentModelUrl)
+    currentLoadedModelRef.current = currentModelUrl
 
     const smoothState = {
       posX: null,
@@ -433,7 +522,7 @@ function ProductDetailPage() {
           const rawPosZ = pEyeMidpoint.z
 
           const faceWidth = pLeftTemple.distanceTo(pRightTemple)
-          const config = MODEL_CONFIGS[product.modelUrl] || { scaleMultiplier: 1.15, yOffset: -0.04, zOffset: 0.05 }
+          const config = MODEL_CONFIGS[currentModelUrlRef.current] || { scaleMultiplier: 1.15, yOffset: -0.04, zOffset: 0.05 }
           const rawScale = faceWidth * (config.scaleMultiplier || 1.15)
 
           let vX = new THREE.Vector3().subVectors(pLeftEye, pRightEye).normalize()
@@ -505,7 +594,7 @@ function ProductDetailPage() {
       try { faceMesh.close() } catch { }
       renderer.dispose()
     }
-  }, [cameraActive, product.modelUrl])
+  }, [cameraActive])
 
   // ─── CAPTURE SCREENSHOT ───
   const handleCapture = useCallback(() => {
@@ -778,8 +867,10 @@ function ProductDetailPage() {
         </div>
       )}
 
-      {/* Left Column: Image Showcase & Details */}
-      <div className="pdp-left">
+      {/* Main Top Grid (Left Info & Right AR Showcase) */}
+      <div className="pdp-main-grid">
+        {/* Left Column: Image Showcase & Details */}
+        <div className="pdp-left">
         {/* Breadcrumb Navigation */}
         <nav className="pdp-breadcrumb">
           <span onClick={() => navigate('/catalog')} className="pdp-bc-link">Catalog</span>
@@ -792,7 +883,7 @@ function ProductDetailPage() {
         {/* Product Image Card */}
         <div className="pdp-image-card" style={{ padding: '16px' }}>
           <div className="pdp-img-main" style={{ height: '320px' }}>
-            <Glasses3DViewer modelUrl={product.modelUrl} height="320px" modelScale={2.2} />
+            <Glasses3DViewer modelUrl={currentModelUrl} height="320px" modelScale={2.2} />
           </div>
         </div>
 
@@ -813,11 +904,11 @@ function ProductDetailPage() {
             </button>
           </div>
 
-          <StarRating rating={product.rating} total={product.reviews} />
+          <StarRating rating={currentRating} total={currentReviewsCount} onClick={scrollToReviews} />
           <p className="pdp-price">{formatPrice(product.price)}</p>
           <p className="pdp-meta">{product.shape} • {product.color} • {product.category}</p>
 
-          {/* Description / Specifications Tabs */}
+          {/* Description / Specifications / Reviews Tabs */}
           <div className="pdp-tabs">
             <button
               className={`pdp-tab ${activeTab === 'description' ? 'active' : ''}`}
@@ -830,6 +921,12 @@ function ProductDetailPage() {
               onClick={() => setActiveTab('specs')}
             >
               Spesifikasi
+            </button>
+            <button
+              className="pdp-tab"
+              onClick={scrollToReviews}
+            >
+              Ulasan ({currentReviewsCount})
             </button>
           </div>
 
@@ -899,7 +996,7 @@ function ProductDetailPage() {
 
           {/* Interactive 3D Preview Mode */}
           {previewMode === '3d' && (
-            <Glasses3DViewer modelUrl={product.modelUrl} showModelSelector={false} autoRotate={true} autoRotateSpeed={1.0} />
+            <Glasses3DViewer modelUrl={currentModelUrl} showModelSelector={false} autoRotate={true} autoRotateSpeed={1.0} />
           )}
 
           {/* Live Camera AR Mode */}
@@ -1056,7 +1153,12 @@ function ProductDetailPage() {
                 <div
                   key={p.id}
                   className={`pdp-switch-item ${p.id === product.id ? 'active' : ''}`}
-                  onClick={() => navigate(`/catalog/${p.id}`)}
+                  onClick={() => {
+                    setCurrentProductId(p.id)
+                    setCurrentModelUrl(p.modelUrl)
+                    setApiProduct(null)
+                    historyLoggedRef.current = false
+                  }}
                   title={p.name}
                 >
                   <img src={p.image} alt={p.name} className="pdp-switch-img" />
@@ -1069,7 +1171,21 @@ function ProductDetailPage() {
         </div>
       </div>
     </div>
-  )
+
+    {/* Full-width Product Reviews Section */}
+    <div className="pdp-reviews-container" id="reviews-section">
+      <div className="pdp-reviews-divider" />
+      <ReviewSection
+        productId={product.id}
+        productName={product.name}
+        onRatingUpdated={(avg, count) => {
+          setCurrentRating(avg)
+          setCurrentReviewsCount(count)
+        }}
+      />
+    </div>
+  </div>
+)
 }
 
 export default ProductDetailPage
